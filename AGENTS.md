@@ -212,3 +212,7 @@ Architecture and its constraints: `docs/internals/overview.md`. Glossary: `docs/
 ## Additional tips
 
 - Security is important, but should not be over-indexed on, especially for dev mode/maintainer-only features.
+
+## Fork Atlas-T3
+
+[Atlas] A0 : ce dépôt est le fork personnel Atlas-T3 de Louis. Avant toute modification, lis et suis `ATLAS.md` (branches, où écrire le code, marqueurs, registre, mise à jour depuis T3).

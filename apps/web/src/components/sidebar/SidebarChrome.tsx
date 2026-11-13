@@ -180,6 +180,8 @@ function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
 function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
   return (
     <span className="inline-flex min-w-0 items-baseline gap-1 text-sm font-medium tracking-tight">
+      {/* [Atlas] A20 : nom ATLAS en haut à gauche, pour distinguer le fork de T3 */}
+      <span data-atlas="A20">ATLAS</span>
       <T3Wordmark aria-label="T3" className="h-[1cap] w-auto shrink-0" />
       <span
         className={cn(
@@ -187,7 +189,8 @@ function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
           onBackdrop ? "text-white/70" : "text-muted-foreground",
         )}
       >
-        Code
+        {/* [Atlas] A20 : « Code » désactivé, le nom affiché est ATLAS T3 */}
+        {false && "Code"}
       </span>
     </span>
   );

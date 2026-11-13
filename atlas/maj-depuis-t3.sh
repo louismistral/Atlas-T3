@@ -8,6 +8,7 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 base_file=atlas/base-t3.txt
 pending=$(git rev-parse --absolute-git-dir)/atlas-maj-cible
+vp=${VP:-vp}; command -v "$vp" >/dev/null || vp="$LOCALAPPDATA/vite-plus/bin/vp.exe"
 
 finir() {
   local cible; cible=$(cat "$pending")
@@ -15,6 +16,9 @@ finir() {
     echo "Conflits non résolus :"; git diff --name-only --diff-filter=U; exit 2
   fi
   echo "$cible" > "$base_file"
+  # Les dépendances de T3 ont pu changer ; le lockfile reste exactement le leur.
+  "$vp" i >/dev/null 2>&1 || { echo "vp i a échoué"; exit 1; }
+  git checkout -q -- pnpm-lock.yaml 2>/dev/null || true
   git add -A
   git -c core.editor=true commit --no-edit -q || true
   rm -f "$pending"
@@ -38,6 +42,8 @@ if git merge-base --is-ancestor "$cible" HEAD; then echo "Déjà à jour (main c
 sauvegarde="atlas-avant-maj-$(date +%Y%m%d-%H%M)"
 git tag "$sauvegarde" && git push -q origin "$sauvegarde"
 echo "Sauvegarde : tag $sauvegarde. Fusion de $cible ($(git rev-list --count HEAD.."$cible") commits de T3)."
+# Un tag garde son nom ; une branche (upstream/main) est figée en commit, sinon la base bougerait toute seule.
+git show-ref -q --tags "$cible" || cible=$(git rev-parse "$cible^{commit}")
 echo "$cible" > "$pending"
 
 if git merge --no-ff --no-commit -m "Mise à jour depuis T3 $cible" "$cible"; then

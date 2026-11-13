@@ -9,8 +9,8 @@ echec=0; ko() { echo "ÉCHEC : $*"; echec=1; }
 
 # 1. Chaque marqueur [Atlas] Ax a sa ligne dans le registre, et chaque ligne « en place » a au moins un marqueur.
 marq=$(git grep -hoE '\[Atlas\] A[0-9]+' -- . ':!ATLAS.md' ':!.repos' | grep -oE 'A[0-9]+' | sort -u)
-for id in $marq; do grep -qE "^\| $id \|" ATLAS.md || ko "marqueur $id sans ligne dans ATLAS.md"; done
-for id in $(grep -E '^\| A[0-9]+ \|.*\| en place \|' ATLAS.md | grep -oE '^\| A[0-9]+' | grep -oE 'A[0-9]+'); do
+for id in $marq; do grep -qE "^\| *$id *\|" ATLAS.md || ko "marqueur $id sans ligne dans ATLAS.md"; done
+for id in $(grep -E '^\| *A[0-9]+ *\|.*\| *en place *\|' ATLAS.md | grep -oE '^\| *A[0-9]+' | grep -oE 'A[0-9]+'); do
   echo "$marq" | grep -qx "$id" || ko "$id est « en place » dans ATLAS.md mais aucun marqueur [Atlas] $id dans le code"
 done
 

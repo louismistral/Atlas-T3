@@ -210,6 +210,7 @@ import {
   claudeRateLimitEventToUpdate,
   type ClaudeScopedLimitNames,
 } from "../../provider/claudeUsageLimits.ts";
+import { atlasUnifiedWindowsUpdate } from "../../atlas/claudeTokenLimits.ts"; // [Atlas] A3 : limites du jeton
 import type { ManagedServerProvider } from "@t3tools/provider-core/server/snapshot";
 import {
   T3_CODE_DEVICE_TOOL_INSTRUCTIONS_WITH_TOOL_SEARCH,
@@ -9893,7 +9894,9 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
             const names = adapterOptions.scopedLimitNames
               ? yield* Ref.get(adapterOptions.scopedLimitNames)
               : { overageIncluded: undefined };
-            const update = claudeRateLimitEventToUpdate(rateLimitInfo, names);
+            const update =
+              claudeRateLimitEventToUpdate(rateLimitInfo, names) ??
+              atlasUnifiedWindowsUpdate(rateLimitInfo); // [Atlas] A3 : pourcentages dans unifiedWindows
             const now = yield* DateTime.now;
             if (update && adapterOptions.onUsageLimits) {
               yield* adapterOptions.onUsageLimits({

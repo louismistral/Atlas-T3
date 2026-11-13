@@ -5,7 +5,7 @@ import {
 } from "@t3tools/provider-core/server/usageLimits";
 import { expect, it } from "vite-plus/test";
 
-import { atlasTokenAccountUsageLimits } from "./claudeTokenLimits.ts";
+import { atlasTokenAccountUsageLimits, atlasUnifiedWindowsUpdate } from "./claudeTokenLimits.ts";
 
 const session = {
   id: "five_hour",
@@ -46,4 +46,20 @@ it("ne touche pas aux autres comptes", () => {
       usage: { rate_limits_available: true },
     }),
   ).toBeUndefined();
+});
+
+it("lit les pourcentages de unifiedWindows (message réel du CLI avec un jeton)", () => {
+  const update = atlasUnifiedWindowsUpdate({
+    status: "allowed",
+    rateLimitType: "five_hour",
+    unifiedWindows: {
+      five_hour: { utilization: 0.04, resetsAt: 1794609600, status: "allowed" },
+      seven_day: { utilization: 0.03, resetsAt: 1795172400, status: "allowed" },
+    },
+  });
+  expect(update?.windows.map((w) => [w.id, w.usedPercent])).toEqual([
+    ["five_hour", 4],
+    ["seven_day", 3],
+  ]);
+  expect(update?.windows[0]?.resetsAt).toMatch(/^2026-/);
 });

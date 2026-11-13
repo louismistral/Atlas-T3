@@ -53,6 +53,7 @@ import {
 } from "./Drivers/ClaudeSkills.ts";
 import type { ProviderWorkspaceSnapshot } from "@t3tools/provider-core/server/driver";
 import { makeUnavailableUsageLimits } from "@t3tools/provider-core/server/usageLimits";
+import { atlasTokenAccountUsageLimits } from "../atlas/claudeTokenLimits.ts"; // [Atlas] A3 : limites d'un compte par jeton
 import {
   type ClaudeScopedLimitNames,
   claudeUsageResponseToLimits,
@@ -813,7 +814,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
       authMethod: capabilities.tokenSource,
     });
   const usageCheckedAt = capabilities.usageCheckedAt ?? checkedAt;
-  const usageLimits = !capabilities.usage
+  const t3UsageLimits = !capabilities.usage // [Atlas] A3 : renommé, voir usageLimits juste après
     ? makeUnavailableUsageLimits({ checkedAt, reason: "probeFailed" })
     : scopedLimitNames
       ? yield* recordClaudeUsageResponse(scopedLimitNames, {
@@ -824,6 +825,8 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
           response: capabilities.usage,
           checkedAt: usageCheckedAt,
         }).limits;
+  // [Atlas] A3 : un compte par jeton garde ses limites reçues en conversation
+  const usageLimits = atlasTokenAccountUsageLimits(capabilities) ?? t3UsageLimits;
   const resetCredits =
     resolveResetCredits &&
     capabilities.subscriptionType &&

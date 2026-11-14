@@ -10,3 +10,11 @@ it("le pied de la barre affiche les quotas", () => {
   );
   expect(src).toContain("<AtlasQuotaFooter />");
 });
+
+it("le détail de la session compte les quotas utilisés, pas restants", () => {
+  const src = NodeFS.readFileSync(
+    new URL("../../components/chat/ThreadDetailsUsage.tsx", import.meta.url),
+    "utf8",
+  );
+  expect(src).toContain("const used = 100 - remainingPercent(window);");
+});

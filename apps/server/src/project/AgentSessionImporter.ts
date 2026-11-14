@@ -42,6 +42,7 @@ import * as ServerSettings from "../serverSettings.ts";
 import * as AgentSessionScanner from "./AgentSessionScanner.ts";
 import * as ProjectService from "./ProjectService.ts";
 import { atlasSkipsTranscript } from "../atlas/sessionSync/t3Born.ts"; // [Atlas] A8
+import { atlasImportSettled, atlasRefreshEventIds } from "../atlas/sessionSync/importTweaks.ts"; // [Atlas] A8
 
 const IMPORT_EVENT_PREFIX = "agent-session-import:v2";
 const CLAUDE_SESSION_ID_PATTERN =
@@ -343,7 +344,38 @@ const make = Effect.gen(function* () {
                 AgentSessionScanner.sameTranscriptIdentity(imported, source),
               )
             ) {
-              return false;
+              // [Atlas] A8 : continuée ailleurs sans avoir été reprise dans T3 → réécrire ses messages
+              const { runs } = yield* orchestrator.getThreadRecords(threadId, ["runs"]);
+              if (runs.length > 0) return false;
+              const now = yield* DateTime.now;
+              const refreshed = yield* eventSink.write({
+                events: atlasRefreshEventIds(
+                  [
+                    {
+                      id: EventId.make(`${IMPORT_EVENT_PREFIX}:thread:${threadId}:unsettled`),
+                      type: "thread.unsettled" as const,
+                      threadId,
+                      providerInstanceId: thread.providerInstanceId,
+                      occurredAt: now,
+                      payload: {
+                        ...existing.value.thread,
+                        updatedAt: dateTime(thread.updatedAt),
+                        settledOverride: null,
+                        settledAt: null,
+                        unsettledAt: now,
+                      },
+                    },
+                    ...thread.messages.flatMap((message, index) =>
+                      messageEvents({ threadId, index, message }),
+                    ),
+                  ],
+                  `${source.size}-${source.mtimeMs ?? 0}`,
+                ),
+              });
+              if (refreshed.length === 0) return false;
+              yield* persistRuntime;
+              yield* runtimes.recordImportedTranscript({ threadId, source });
+              return true;
             }
             yield* persistRuntime;
             yield* runtimes.recordImportedTranscript({ threadId, source });
@@ -358,6 +390,11 @@ const make = Effect.gen(function* () {
           });
           const createdAt = dateTime(thread.createdAt);
           const updatedAt = dateTime(thread.updatedAt);
+          // [Atlas] A8 : une session récente arrive dans la liste active, pas en Settled
+          const settled = atlasImportSettled(
+            thread.updatedAt,
+            DateTime.toEpochMillis(yield* DateTime.now),
+          );
           const appThread: OrchestrationV2AppThread = {
             createdBy: "system",
             creationSource: "server",
@@ -383,8 +420,8 @@ const make = Effect.gen(function* () {
             createdAt,
             updatedAt,
             archivedAt: null,
-            settledOverride: "settled",
-            settledAt: updatedAt,
+            settledOverride: settled ? "settled" : null, // [Atlas] A8
+            settledAt: settled ? updatedAt : null,
             unsettledAt: null,
             snoozedUntil: null,
             snoozedAt: null,

@@ -6,6 +6,9 @@ import * as NodePath from "node:path";
 import { expect, it } from "vite-plus/test";
 import { createDesktopRecord, knownCliSessionIds } from "./desktopRecords.ts";
 import { isSkippedHead } from "./t3Born.ts";
+import { atlasImportSettled, atlasRefreshEventIds } from "./importTweaks.ts";
+import { pickProjectFolders } from "./projectFolders.ts";
+import { EventId } from "@t3tools/contracts";
 
 it("écarte les sessions nées dans T3 et celles des scripts, garde le Desktop et le terminal", () => {
   expect(isSkippedHead('{"type":"user","entrypoint":"t3-code"}')).toBe(true);
@@ -59,4 +62,46 @@ it("le serveur et l'import gardent les raccordements A8", () => {
   const read = (p: string) => NodeFS.readFileSync(new URL(p, import.meta.url), "utf8");
   expect(read("../../server.ts")).toContain("AtlasSessionSync.layer");
   expect(read("../../project/AgentSessionImporter.ts")).toContain("atlasSkipsTranscript(");
+});
+
+it("ajoute en projet les dossiers des sessions humaines, sauf temporaires, couverts ou déjà ajoutés", () => {
+  const D = NodePath.join("C:", "Users", "l", "Documents");
+  const picked = pickProjectFolders({
+    cwds: [
+      NodePath.join(D, "Redline"),
+      NodePath.join(D, "Redline"),
+      NodePath.join(D, "Redline", "sous"),
+      NodePath.join(D, "Atlas", "x"),
+      NodePath.join(D, "atlas-test", "tmpab12"),
+      NodePath.join(D, "Supprime"),
+      NodePath.join("C:", "Users", "l"),
+      NodePath.join("C:", "Temp", "y"),
+      NodePath.join(D, "Absent"),
+    ],
+    projectRoots: [NodePath.join(D, "atlas")],
+    alreadyAdded: [NodePath.join(D, "Supprime")],
+    home: NodePath.join("C:", "Users", "l"),
+    tmp: NodePath.join("C:", "Temp"),
+    exists: (path) => !path.endsWith("Absent"),
+  });
+  expect(picked).toEqual([NodePath.resolve(NodePath.join(D, "Redline"))]);
+});
+
+it("range en Settled seulement ce qui est inactif depuis plus de 24 h", () => {
+  const now = Date.parse("2026-11-14T12:00:00Z");
+  expect(atlasImportSettled("2026-11-14T08:00:00Z", now)).toBe(false);
+  expect(atlasImportSettled("2026-11-12T08:00:00Z", now)).toBe(true);
+});
+
+it("réécrit une session avec de nouveaux identifiants d'évènement", () => {
+  const [event] = atlasRefreshEventIds([{ id: EventId.make("a"), n: 1 }], "42");
+  expect(event).toEqual({ id: "a:atlas-refresh:42", n: 1 });
+});
+
+it("l'import garde les réglages A8 (récentes actives, mise à jour, projets ajoutés)", () => {
+  const read = (p: string) => NodeFS.readFileSync(new URL(p, import.meta.url), "utf8");
+  const importer = read("../../project/AgentSessionImporter.ts");
+  expect(importer).toContain("atlasImportSettled(");
+  expect(importer).toContain("atlasRefreshEventIds(");
+  expect(read("./sessionSync.ts")).toContain("yield* addProjectFolders;");
 });

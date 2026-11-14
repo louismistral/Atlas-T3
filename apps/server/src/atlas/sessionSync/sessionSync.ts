@@ -1,6 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off - lit les transcriptions et la correspondance des comptes.
 // [Atlas] A8 : sessions partagées avec le Desktop et l'app ChatGPT/Codex, sans les états.
 // Toutes les 3 minutes :
+//  0. chaque dossier d'une session humaine récente devient un projet T3 (voir projectFolders.ts) ;
 //  1. ce qui est né ailleurs (Desktop, app Codex, terminal) entre dans T3 par l'import de T3 lui-même,
 //     pour chaque projet de T3 (les sessions nées dans T3 sont écartées, voir t3Born.ts) ;
 //  2. chaque session Claude née dans T3 reçoit une fiche Desktop, si son compte est dans
@@ -10,6 +11,7 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
+import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Layer from "effect/Layer";
 import * as Schedule from "effect/Schedule";
 import * as SqlClient from "effect/sql/SqlClient";
@@ -17,7 +19,14 @@ import * as SqlClient from "effect/sql/SqlClient";
 import * as AgentSessionImporter from "../../project/AgentSessionImporter.ts";
 import * as AgentSessionScanner from "../../project/AgentSessionScanner.ts";
 import * as ProjectService from "../../project/ProjectService.ts";
+import { CommandId, ProjectId } from "@t3tools/contracts";
 import { createDesktopRecord, knownCliSessionIds } from "./desktopRecords.ts";
+import {
+  humanSessionFolders,
+  pickProjectFolders,
+  readAdded,
+  writeAdded,
+} from "./projectFolders.ts";
 
 const home = NodeOS.homedir();
 const desktopSessionsRoot = NodePath.join(
@@ -27,6 +36,8 @@ const desktopSessionsRoot = NodePath.join(
 );
 const accountsFile = NodePath.join(home, ".claude", "atlas", "desktop-comptes.json");
 const claudeProjects = NodePath.join(home, ".claude", "projects");
+const transcriptRoots = [claudeProjects, NodePath.join(home, ".codex", "sessions")];
+const addedFile = NodePath.join(home, ".claude", "atlas", "projets-ajoutes.json");
 
 function readAccounts(): Record<string, string> {
   try {
@@ -56,7 +67,36 @@ export const layer = Layer.effectDiscard(
     const projects = yield* ProjectService.ProjectService;
     const sql = yield* SqlClient.SqlClient;
 
+    const random = yield* SecureRandom.SecureRandom;
+
+    const addProjectFolders = Effect.gen(function* () {
+      const snapshot = yield* projects.snapshot;
+      const alreadyAdded = readAdded(addedFile);
+      const folders = pickProjectFolders({
+        cwds: humanSessionFolders(transcriptRoots, yield* Clock.currentTimeMillis),
+        projectRoots: snapshot.projects.map((project) => project.workspaceRoot),
+        alreadyAdded,
+        home,
+        tmp: NodeOS.tmpdir(),
+        exists: (path) => NodeFS.existsSync(path),
+      });
+      for (const workspaceRoot of folders) {
+        const id = yield* random.uuidV4();
+        const added = yield* projects
+          .bootstrap({
+            commandId: CommandId.make(`atlas-project:${id}`),
+            projectId: ProjectId.make(id),
+            title: NodePath.basename(workspaceRoot),
+            workspaceRoot,
+          })
+          .pipe(Effect.option);
+        if (added._tag === "Some") alreadyAdded.push(workspaceRoot);
+      }
+      if (folders.length > 0) writeAdded(addedFile, alreadyAdded);
+    });
+
     const importFromOutside = Effect.gen(function* () {
+      yield* addProjectFolders;
       yield* scanner.scan; // relit les dossiers : sans lui, l'import garde la liste du démarrage
       const snapshot = yield* projects.snapshot;
       for (const project of snapshot.projects) {

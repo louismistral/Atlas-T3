@@ -4,6 +4,7 @@ import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/model
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import * as Schema from "effect/Schema";
 import { LayersIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import {
   groupSidebarThreadsByProject,
@@ -131,9 +132,21 @@ export function useAtlasSidebar(input: {
   };
 }
 
+// Contour de groupe, comme les cartes de la barre d'Atlas ; la liste « No group » reste sans carte.
+export function AtlasSectionCard(props: { plain: boolean; children: ReactNode }) {
+  if (props.plain) return <>{props.children}</>;
+  return (
+    <li data-atlas="A16" className="mx-0.5 mt-2 list-none first:mt-0">
+      <ul className="flex flex-col gap-px rounded-xl border border-sidebar-border px-1 pt-0.5 pb-1">
+        {props.children}
+      </ul>
+    </li>
+  );
+}
+
 export function AtlasSectionHeader(props: { section: AtlasSidebarSection; onToggle: () => void }) {
   return (
-    <li data-atlas="A16" className="relative mx-0.5 mt-1 h-8 list-none first:mt-0">
+    <li data-atlas="A16" className="relative h-8 list-none">
       <CollapsibleSectionHeader
         data-sidebar-row={`atlas:${props.section.key}`}
         onClick={props.onToggle}

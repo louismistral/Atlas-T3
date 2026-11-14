@@ -278,6 +278,7 @@ import {
 // [Atlas] A16 : barre regroupée à la façon d'Atlas
 import {
   AtlasGroupMenu,
+  AtlasSectionCard,
   AtlasSectionHeader,
   atlasRowLayout,
   useAtlasGroupBy,
@@ -3544,8 +3545,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                       if (atlasSidebar.sections !== null) {
                         for (const section of atlasSidebar.sections) {
                           const group = section.group;
+                          const card: ReactNode[] = []; // [Atlas] A16 : un groupe = une carte à contour
                           if (section.kind === "project" && group !== null) {
-                            items.push(
+                            card.push(
                               <SidebarProjectFolderHeader
                                 key={`atlas:${section.key}`}
                                 group={group}
@@ -3557,7 +3559,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               />,
                             );
                           } else if (section.kind === "header") {
-                            items.push(
+                            card.push(
                               <AtlasSectionHeader
                                 key={`atlas:${section.key}`}
                                 section={section}
@@ -3569,7 +3571,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                             const key = scopedThreadKey(
                               scopeThreadRef(thread.environmentId, thread.id),
                             );
-                            items.push(
+                            card.push(
                               renderThreadRow(
                                 thread,
                                 sectionByThreadKey.get(key) ?? "active",
@@ -3577,6 +3579,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               ),
                             );
                           }
+                          items.push(
+                            <AtlasSectionCard
+                              key={`atlas-card:${section.key}`}
+                              plain={section.kind === "plain"}
+                            >
+                              {card}
+                            </AtlasSectionCard>,
+                          );
                         }
                         return items;
                       }

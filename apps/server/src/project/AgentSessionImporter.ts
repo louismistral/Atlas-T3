@@ -41,6 +41,7 @@ import * as ProviderSessionRuntime from "../persistence/ProviderSessionRuntime.t
 import * as ServerSettings from "../serverSettings.ts";
 import * as AgentSessionScanner from "./AgentSessionScanner.ts";
 import * as ProjectService from "./ProjectService.ts";
+import { atlasSkipsTranscript } from "../atlas/sessionSync/t3Born.ts"; // [Atlas] A8
 
 const IMPORT_EVENT_PREFIX = "agent-session-import:v2";
 const CLAUDE_SESSION_ID_PATTERN =
@@ -281,6 +282,11 @@ const make = Effect.gen(function* () {
           return;
         }
 
+        // [Atlas] A8 : ni les sessions nées dans T3 (doubles) ni celles lancées par un script
+        if (atlasSkipsTranscript(source.filePath)) {
+          skippedCount += 1;
+          return;
+        }
         const imported = yield* Effect.gen(function* () {
           const thread = outcome.thread;
           if (

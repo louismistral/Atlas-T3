@@ -275,6 +275,14 @@ import {
   SidebarSectionHeader,
   SidebarSectionPlaceholder,
 } from "./sidebar/SidebarListMarkers";
+// [Atlas] A16 : barre regroupée à la façon d'Atlas
+import {
+  AtlasGroupMenu,
+  AtlasSectionHeader,
+  atlasRowLayout,
+  useAtlasGroupBy,
+  useAtlasSidebar,
+} from "../atlas/sidebar/AtlasSidebar";
 
 function sameSidebarProviderEntries(
   left: ReadonlyMap<string, SidebarProviderEntry>,
@@ -450,11 +458,14 @@ function useSidebarThreads(input: {
   const nowMinute = useNowMinute();
   // Minute-quantized clocks would delay second-precise snooze wakes by up to a minute.
   const snoozeWakeClock = useSnoozeWakeClock(threads);
-  const [settledShelfExpanded, setSettledShelfExpanded] = useLocalStorage(
+  const [settledShelfStored, setSettledShelfExpanded] = useLocalStorage(
+    // [Atlas] A16 : renommé, voir plus bas
     SETTLED_SHELF_EXPANDED_KEY,
     false,
     Schema.Boolean,
   );
+  // [Atlas] A16 : la barre Atlas liste toujours les settled (ses sections les replient elles-mêmes)
+  const settledShelfExpanded = useAtlasGroupBy()[0] !== "t3" || settledShelfStored;
   const [snoozedShelfExpanded, setSnoozedShelfExpanded] = useLocalStorage(
     SNOOZED_SHELF_EXPANDED_KEY,
     false,
@@ -1342,8 +1353,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     renderedSettledThreads,
     visibleSnoozedThreads,
     visibleWorkingThreads,
-    orderedThreadKeys,
-    threadByKey,
+    orderedThreadKeys: t3OrderedThreadKeys, // [Atlas] A16 : remplacé par l'ordre de la barre Atlas
+    threadByKey: t3ThreadByKey, // [Atlas] A16 : idem
     settledThreadKeys,
     snoozedThreadKeys,
     sectionByThreadKey,
@@ -1369,6 +1380,23 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     keepEmptyFolders: (group) =>
       scopedProjectGroups.length > 0 || (group.pinned && !group.archived),
   });
+  // [Atlas] A16 : sections de la barre Atlas (No group, Project, State) ; "T3 default" rend la barre d'origine
+  const atlasSidebar = useAtlasSidebar({
+    pinned: pinnedThreads,
+    active: activeThreads,
+    working: workingThreads,
+    snoozed: snoozedThreads,
+    settled: renderedSettledThreads,
+    routeKey: routeRowThreadKey,
+    projectGroups:
+      scopedProjectGroups.length === 0
+        ? [...scopeGroups, ...projectGroups.filter((project) => project.archived)]
+        : scopedProjectGroups,
+    keepEmptyFolders: (group) =>
+      scopedProjectGroups.length > 0 || (group.pinned && !group.archived),
+  });
+  const orderedThreadKeys = atlasSidebar.orderedKeys ?? t3OrderedThreadKeys; // [Atlas] A16
+  const threadByKey = atlasSidebar.threadByKey ?? t3ThreadByKey; // [Atlas] A16
 
   // Ranked across environments as the palette ranks them, so one
   // environment's list does not sit above another's better matches; rows
@@ -2983,6 +3011,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           <SidebarGroup className="z-[1]">
             <SidebarThreadHeader
               hasProjects={projectGroups.length > 0}
+              atlasGroupMenu={
+                // [Atlas] A16 : bouton Groupe à gauche du filtre
+                <AtlasGroupMenu value={atlasSidebar.groupBy} onChange={atlasSidebar.setGroupBy} />
+              }
               projectScope={
                 <Combobox
                   items={projectScopeItems}
@@ -3392,12 +3424,21 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                             sortableId={threadKey}
                             contextDrag={isContextDrag}
                             sortableDisabled={
+                              atlasSidebar.sections !== null || // [Atlas] A16 : pas de glisser entre sections Atlas
                               renamingThreadKey === threadKey ||
                               !draggableThreadKeys.has(threadKey) ||
                               optimisticDrop !== null
                             }
                             thread={thread}
-                            variant={rowVariant}
+                            variant={atlasSidebar.sections !== null ? "folder" : rowVariant} // [Atlas] A16 : une ligne par session
+                            atlasRow={
+                              atlasSidebar.sections !== null // [Atlas] A16
+                                ? atlasRowLayout(
+                                    folderRow !== undefined,
+                                    atlasSidebar.groupBy !== "project",
+                                  )
+                                : undefined
+                            }
                             navigationParent={
                               folderRow ??
                               (section === "working" ||
@@ -3499,6 +3540,46 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                           onDraftContextMenu={handleDraftContextMenu}
                         />,
                       ];
+                      // [Atlas] A16 : sections de la barre Atlas à la place des étagères de T3
+                      if (atlasSidebar.sections !== null) {
+                        for (const section of atlasSidebar.sections) {
+                          const group = section.group;
+                          if (section.kind === "project" && group !== null) {
+                            items.push(
+                              <SidebarProjectFolderHeader
+                                key={`atlas:${section.key}`}
+                                group={group}
+                                collapsed={section.collapsed}
+                                hiddenThreads={section.hidden}
+                                onToggle={() => atlasSidebar.toggle(section.key)}
+                                onNewThread={startThreadInProjectFolder}
+                                onContextMenu={handleProjectFolderContextMenu}
+                              />,
+                            );
+                          } else if (section.kind === "header") {
+                            items.push(
+                              <AtlasSectionHeader
+                                key={`atlas:${section.key}`}
+                                section={section}
+                                onToggle={() => atlasSidebar.toggle(section.key)}
+                              />,
+                            );
+                          }
+                          for (const thread of section.threads) {
+                            const key = scopedThreadKey(
+                              scopeThreadRef(thread.environmentId, thread.id),
+                            );
+                            items.push(
+                              renderThreadRow(
+                                thread,
+                                sectionByThreadKey.get(key) ?? "active",
+                                group !== null ? sidebarFolderRowId(group.projectKey) : undefined,
+                              ),
+                            );
+                          }
+                        }
+                        return items;
+                      }
                       for (const item of sidebarListItems) {
                         if (item.kind === "thread") {
                           // Folders draw active rows in their own place below.
@@ -3643,7 +3724,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                       }
                       return items;
                     })()}
-                    {settledShelfExpanded && hiddenSettledCount > 0 ? (
+                    {settledShelfExpanded &&
+                    atlasSidebar.showMoreSettled && // [Atlas] A16 : pas sous une section Settled repliée
+                    hiddenSettledCount > 0 ? (
                       <li className="list-none">
                         <button
                           type="button"

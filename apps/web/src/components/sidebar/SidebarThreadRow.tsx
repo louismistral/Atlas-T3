@@ -547,6 +547,8 @@ type SidebarThreadRowProps = {
   // "folder" is a one-line row inside a boring sidebar project folder;
   // "folder-multiline" adds the card's branch and PR line under it.
   variant: "card" | "slim" | "folder" | "folder-multiline";
+  // [Atlas] A16 : ligne de la barre Atlas (icône du provider, titre, dossier, temps)
+  atlasRow?: { indent: boolean; showProject: boolean } | undefined;
   navigationParent?: string | undefined;
   variantAction: SidebarSweepAction;
   settlementSupported: boolean;
@@ -1248,7 +1250,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                     ? "flex flex-col justify-center px-2.5 py-1.5"
                     : "flex h-9 items-center gap-2.5 px-2.5",
                   // Lines titles up with the folder name, past its chevron and icon.
-                  inFolder && "ps-9",
+                  inFolder && (props.atlasRow?.indent ?? true) && "ps-9", // [Atlas] A16 : retrait seulement dans un dossier
                 )}
                 onClick={handleClick}
                 onDoubleClick={handleDoubleClick}
@@ -1260,6 +1262,15 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
             {/* `contents` keeps one-line rows a single flex row. */}
             <div className={multiline ? "flex h-6 min-w-0 items-center gap-2.5" : "contents"}>
               {accessibleTitle}
+              {/* [Atlas] A16 : l'icône du provider ouvre la ligne */}
+              {props.atlasRow ? (
+                <span data-atlas="A16" aria-hidden className="flex w-4 shrink-0 items-center">
+                  <SidebarProviderStack
+                    thread={thread}
+                    providerEntryByInstanceId={props.providerEntryByInstanceId}
+                  />
+                </span>
+              ) : null}
               {inFolder ? null : (
                 <span
                   className={cn(
@@ -1275,6 +1286,12 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
               )}
               {draftIndicator}
               {title}
+              {/* [Atlas] A16 : le dossier après le titre */}
+              {props.atlasRow?.showProject && props.projectDisplayName ? (
+                <span className="max-w-[35%] shrink-0 truncate text-xs text-secondary-label">
+                  {props.projectDisplayName}
+                </span>
+              ) : null}
               {multiline ? titleLineIcons : null}
               {pinIndicator}
               {multiline ? null : terminalStatusIcon}

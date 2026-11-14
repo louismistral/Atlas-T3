@@ -383,6 +383,7 @@ import {
   type LocalThreadErrorEntry,
   makeThreadErrorSetter,
 } from "./ChatView.logic";
+import { AtlasCacheBar } from "../atlas/cache/AtlasCacheBar"; // [Atlas] A4
 
 const EMPTY_PROVIDERS: ServerProvider[] = [];
 const EMPTY_PROVIDER_MODELS: ServerProvider["models"] = [];
@@ -3573,6 +3574,8 @@ export default function ChatView(props: ChatViewProps) {
                     }
                   >
                     <ChildThreadApprovals threadRef={activeThreadRef} />
+                    {/* [Atlas] A4 : barre du cache et jetons du dernier tour, au-dessus de la saisie */}
+                    <AtlasCacheBar turns={serverProjection?.providerTurns} />
                     <div className="relative">
                       <ComposerSurface.Shell contextRow={showComposerContextStrip}>
                         <ComposerSurface.Host

@@ -245,6 +245,7 @@ import {
   makeSubagentConversationArtifacts,
   subagentThreadTitle,
 } from "@t3tools/provider-core/server/subagentProjection";
+import { atlasClaudeTurnTokens } from "../../atlas/claudeTurnTokens.ts"; // [Atlas] A4
 
 export const CLAUDE_PROVIDER = ProviderDriverKind.make("claudeAgent");
 /** The query exited before the turn attached, so the prompt was never offered. */
@@ -5983,8 +5984,8 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
           // arrives after generation, so it leaves the cache expiry unknown.
           if (requestStarted && context.streamUsage !== null) context.streamUsage.requestedAt = now;
           const maxTokens = claudeContextWindow(context.input.modelSelection);
-          const tokenUsage =
-            typeof usage === "number"
+          const tokenUsage = {
+            ...(typeof usage === "number"
               ? {
                   usedTokens: usage,
                   maxTokens,
@@ -5997,7 +5998,14 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                   DateTime.formatIso(now),
                   context.autoCompactWindow,
                   context.streamUsage?.requestedAt,
-                );
+                )),
+            // [Atlas] A4 : jetons cumulés du tour pour la barre du cache
+            ...atlasClaudeTurnTokens(
+              context,
+              context.streamUsage?.messageId,
+              typeof usage === "number" ? undefined : usage,
+            ),
+          };
           if (typeof usage !== "number") {
             if (claudeMessageInputTokens(usage) <= 0) return;
             context.compactionTokens = undefined;

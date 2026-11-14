@@ -86,6 +86,7 @@ import {
   ToolActivitySource,
 } from "./providerRuntime.ts";
 import { ThreadTokenUsageSnapshot } from "./providerRuntime.ts";
+import { AtlasTurnTokens } from "./atlas/turnTokens.ts"; // [Atlas] A4
 
 export const OrchestrationV2Actor = Schema.Literals(["user", "agent", "system"]);
 export type OrchestrationV2Actor = typeof OrchestrationV2Actor.Type;
@@ -237,6 +238,7 @@ export const OrchestrationV2ProviderTurnTokenUsage = Schema.Struct({
   promptCacheTtlMs: Schema.optional(PositiveInt),
   autoCompactThreshold: Schema.optional(PositiveInt),
   promptCacheExpiresAt: Schema.optional(Schema.String),
+  atlasTurn: Schema.optional(AtlasTurnTokens), // [Atlas] A4 : jetons cumulés du tour
   updatedAt: Schema.String,
 });
 export type OrchestrationV2ProviderTurnTokenUsage =

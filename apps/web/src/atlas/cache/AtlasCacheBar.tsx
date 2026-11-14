@@ -40,7 +40,7 @@ function Pill(props: { icon: LucideIcon; value: string; label: string }) {
     <Tooltip>
       <TooltipTrigger
         render={
-          <span className="inline-flex h-5 items-center gap-1 rounded-full border border-border/70 px-1.5 text-2xs text-muted-foreground tabular-nums" />
+          <span className="inline-flex h-5 w-14 items-center gap-1 rounded-full border border-border/70 px-1.5 text-2xs text-muted-foreground tabular-nums" />
         }
       >
         <Icon aria-hidden className="size-3" />
@@ -67,25 +67,32 @@ export function AtlasCacheBar(props: {
   const share = left === null || ttl === null ? 0 : Math.min(1, left / ttl);
   const calls = t.calls > 1 ? ` (${t.calls} calls)` : "";
   return (
-    <div
-      data-atlas="A4"
-      className="relative -mt-6 flex flex-col gap-1 bg-linear-to-t from-background from-70% to-transparent px-1 pt-6 pb-1.5"
-    >
-      {left !== null ? (
-        <div className="flex items-center gap-2 text-2xs text-muted-foreground tabular-nums">
-          <span className="relative h-1 flex-1 overflow-hidden rounded-full bg-muted">
-            <span
-              className={cn(
-                "absolute inset-y-0 left-0 rounded-full transition-[width] duration-1000 ease-linear",
-                share > 1 / 3 ? "bg-success" : share > 1 / 12 ? "bg-warning" : "bg-error",
-              )}
-              style={{ width: `${share * 100}%` }}
-            />
-          </span>
-          <span>{left > 0 ? `Cache ${formatCountdown(left)}` : "Cache cold"}</span>
-        </div>
-      ) : null}
-      <div className="flex flex-wrap items-center gap-1">
+    <div data-atlas="A4" className="flex h-7 items-center gap-3 px-1.5 pb-1.5">
+      {/* Fond opaque qui couvre tout le bas de la conversation, saisie comprise, et s'estompe vite vers le haut */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -inset-x-4 -top-12 bottom-0 -z-10"
+        style={{
+          backgroundImage:
+            "linear-gradient(to top, var(--color-background) calc(100% - 3rem), transparent)",
+        }}
+      />
+      {/* Positions fixes : la barre, le chrono, puis les pastilles ne bougent pas d'un tour à l'autre */}
+      <span className="relative h-1 min-w-12 flex-1 overflow-hidden rounded-full bg-muted">
+        {left !== null ? (
+          <span
+            className={cn(
+              "absolute inset-y-0 left-0 rounded-full transition-[width] duration-1000 ease-linear",
+              share > 1 / 3 ? "bg-success" : share > 1 / 12 ? "bg-warning" : "bg-error",
+            )}
+            style={{ width: `${share * 100}%` }}
+          />
+        ) : null}
+      </span>
+      <span className="w-10 shrink-0 text-right text-2xs text-muted-foreground tabular-nums">
+        {left === null ? "·" : left > 0 ? formatCountdown(left) : "cold"}
+      </span>
+      <span className="flex shrink-0 items-center gap-1">
         <Pill icon={DatabaseIcon} value={formatTokens(t.read)} label={`Read from cache${calls}`} />
         <Pill
           icon={PenLineIcon}
@@ -98,14 +105,12 @@ export function AtlasCacheBar(props: {
           label="Input read without cache"
         />
         <Pill icon={ArrowUpFromLineIcon} value={formatTokens(t.output)} label="Output" />
-        {cost !== null ? (
-          <Pill
-            icon={DollarSignIcon}
-            value={formatUsd(cost).replace("$", "")}
-            label="API price equivalent for the last turn (the subscription is not billed in dollars)"
-          />
-        ) : null}
-      </div>
+        <Pill
+          icon={DollarSignIcon}
+          value={cost === null ? "·" : formatUsd(cost).replace("$", "")}
+          label="API price equivalent for the last turn (the subscription is not billed in dollars)"
+        />
+      </span>
     </div>
   );
 }

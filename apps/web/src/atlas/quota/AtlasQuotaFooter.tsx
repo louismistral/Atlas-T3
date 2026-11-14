@@ -47,31 +47,31 @@ export function AtlasQuotaFooter() {
                 accentColor={account.accentColor}
                 size="compact"
               />
-              <span className="min-w-0 flex-1 truncate text-xs">{name}</span>
-              {/* 5 h en grand, semaine en petit dessous */}
-              <span className="flex w-16 shrink-0 flex-col gap-0.5">
-                <span className="relative h-1.5 overflow-hidden rounded-full bg-muted">
-                  <span
-                    className={cn(
-                      "absolute inset-y-0 left-0 rounded-full",
-                      (fiveHours ?? 0) >= 90 ? "bg-error" : "bg-sidebar-foreground/70",
-                    )}
-                    style={{ width: `${fiveHours ?? 0}%` }}
-                  />
-                </span>
-                <span className="relative h-0.5 overflow-hidden rounded-full bg-muted">
-                  <span
-                    className={cn(
-                      "absolute inset-y-0 left-0 rounded-full",
-                      (week ?? 0) >= 90 ? "bg-error" : "bg-sidebar-foreground/40",
-                    )}
-                    style={{ width: `${week ?? 0}%` }}
-                  />
-                </span>
+              <span className="w-16 min-w-0 shrink truncate text-xs">{name}</span>
+              {/* 5 h : longue barre et son % ; semaine : barre courte et son % */}
+              <span className="relative h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-muted">
+                <span
+                  className={cn(
+                    "absolute inset-y-0 left-0 rounded-full",
+                    (fiveHours ?? 0) >= 90 ? "bg-error" : "bg-sidebar-foreground/70",
+                  )}
+                  style={{ width: `${fiveHours ?? 0}%` }}
+                />
               </span>
-              <span className="flex w-9 shrink-0 flex-col items-end leading-none">
-                <span>{fiveHours === null ? "·" : `${fiveHours}%`}</span>
-                <span className="text-3xs opacity-60">{week === null ? "·" : `${week}%`}</span>
+              <span className="w-7 shrink-0 text-right">
+                {fiveHours === null ? "·" : `${fiveHours}%`}
+              </span>
+              <span className="relative h-1 w-6 shrink-0 overflow-hidden rounded-full bg-muted">
+                <span
+                  className={cn(
+                    "absolute inset-y-0 left-0 rounded-full",
+                    (week ?? 0) >= 90 ? "bg-error" : "bg-sidebar-foreground/50",
+                  )}
+                  style={{ width: `${week ?? 0}%` }}
+                />
+              </span>
+              <span className="w-7 shrink-0 text-right opacity-70">
+                {week === null ? "·" : `${week}%`}
               </span>
             </TooltipTrigger>
             <TooltipPopup side="right">

@@ -26,4 +26,6 @@ if ($old.Trim() -ne $key) {
   Set-Content $stamp $key -NoNewline
 }
 
+# [Atlas] A21 : identifiant propre à ATLAS T3 ; la barre des tâches prend l'icône du raccourci du menu Démarrer qui le porte
+$env:T3CODE_DESKTOP_APP_USER_MODEL_ID = 'louismistral.atlas-t3'
 & $vp run start:desktop

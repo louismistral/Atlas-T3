@@ -79,6 +79,11 @@ function resolveSourceTreeIconPath(
   ext: keyof DesktopIconPaths,
 ): string | undefined {
   if (environment.isPackaged || ext === "icns") return undefined;
+  // [Atlas] A21 : icône ATLAS T3 (marbre) pour la fenêtre et la barre des tâches
+  if (environment.platform !== "darwin") {
+    const atlasIcon = ext === "ico" ? "atlas-t3.ico" : "atlas-t3-1024.png";
+    return environment.path.join(environment.rootDir, "atlas", "icone", atlasIcon);
+  }
   const brand = environment.isDevelopment ? "dev" : "prod";
   const fileNames = sourceTreeIconFileNames[brand];
   const fileName =

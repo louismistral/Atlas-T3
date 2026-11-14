@@ -76,6 +76,7 @@ import { useEnvironmentQuery } from "../../state/query";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { formatRelativeTimeLabel, parseTimestampDate } from "../../timestampFormat";
 import type { SidebarThreadSummary } from "../../types";
+import { AtlasRowTail } from "../../atlas/sidebar/AtlasRowTail"; // [Atlas] A16
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { cn } from "~/lib/utils";
 import { textDirection } from "~/textDirection";
@@ -1316,7 +1317,30 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                       !isWoke && "group-any-hover/sidebar-row:opacity-0",
                     )}
                   >
-                    {variantAction === "unsnooze" && props.snoozeWakeLabelText !== null ? (
+                    {props.atlasRow ? (
+                      // [Atlas] A16 : mini barre du cache, temps, puis icône d'état
+                      <AtlasRowTail
+                        thread={thread}
+                        time={
+                          <RelativeTimeLabel
+                            timestamp={
+                              variantAction === "unsettle"
+                                ? resolveSettledThreadTimestamp(thread)
+                                : resolveThreadActivityTimestamp(thread)
+                            }
+                          />
+                        }
+                        status={
+                          topStatus ? (
+                            <TopStatusIcon
+                              icon={topStatus.icon}
+                              className={cn("size-3", topStatus.className)}
+                            />
+                          ) : null
+                        }
+                        statusLabel={topStatus?.label ?? null}
+                      />
+                    ) : variantAction === "unsnooze" && props.snoozeWakeLabelText !== null ? (
                       <span className="inline-flex items-center gap-1 text-xs text-info-foreground tabular-nums">
                         {/* The clock tells a wake time from an age at a glance. */}
                         <AlarmClockIcon aria-hidden className="size-3" />

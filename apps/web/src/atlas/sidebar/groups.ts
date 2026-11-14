@@ -15,6 +15,7 @@ export const ATLAS_GROUP_BY_LABELS: Record<AtlasGroupBy, string> = {
 export type AtlasThreadState =
   | "needsYou"
   | "working"
+  | "warm"
   | "retry"
   | "unread"
   | "idle"
@@ -23,6 +24,7 @@ export type AtlasThreadState =
 const ATLAS_STATE_ORDER: readonly AtlasThreadState[] = [
   "needsYou",
   "working",
+  "warm",
   "retry",
   "unread",
   "idle",
@@ -32,6 +34,7 @@ const ATLAS_STATE_ORDER: readonly AtlasThreadState[] = [
 const ATLAS_STATE_LABELS: Record<AtlasThreadState, string> = {
   needsYou: "Needs you",
   working: "Working",
+  warm: "Cache warm",
   retry: "Retry",
   unread: "Unread",
   idle: "Idle",
@@ -43,6 +46,8 @@ export function atlasThreadState(input: {
   shelf: "snoozed" | "settled" | null;
   status: SidebarThreadStatus;
   unread: boolean;
+  // Au repos mais cache encore chaud : à reprendre avant qu'il refroidisse.
+  cacheWarm?: boolean;
 }): AtlasThreadState {
   if (input.shelf !== null) return input.shelf;
   switch (input.status) {
@@ -58,7 +63,7 @@ export function atlasThreadState(input: {
     case "limited":
       return "retry";
     default:
-      return input.unread ? "unread" : "idle";
+      return input.cacheWarm ? "warm" : input.unread ? "unread" : "idle";
   }
 }
 

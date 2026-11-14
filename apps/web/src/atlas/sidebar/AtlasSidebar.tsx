@@ -24,6 +24,8 @@ import {
   MenuTrigger,
 } from "../../components/ui/menu";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useNowMinute } from "../../hooks/useNowMinute";
+import { atlasThreadCacheLeftMs } from "../cache/threadCache";
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
 import { useUiStateStore } from "../../uiStateStore";
 import {
@@ -80,6 +82,8 @@ export function useAtlasSidebar(input: {
     COLLAPSED_SCHEMA,
   );
   const lastVisitedById = useUiStateStore((state) => state.threadLastVisitedAtById);
+  const nowMinute = useNowMinute();
+  const now = Date.parse(`${nowMinute}:00Z`);
   const snoozedKeys = new Set(input.snoozed.map(keyOf));
   const settledKeys = new Set(input.settled.map(keyOf));
   const view =
@@ -98,6 +102,7 @@ export function useAtlasSidebar(input: {
             return atlasThreadState({
               shelf: settledKeys.has(key) ? "settled" : snoozedKeys.has(key) ? "snoozed" : null,
               status: resolveSidebarThreadStatus(thread),
+              cacheWarm: atlasThreadCacheLeftMs(thread, now) > 0,
               unread: hasUnseenCompletion({
                 ...thread,
                 lastVisitedAt: resolveThreadLastVisitedAt(

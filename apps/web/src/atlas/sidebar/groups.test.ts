@@ -80,6 +80,9 @@ describe("atlasThreadState", () => {
     expect(atlasThreadState({ shelf: null, status: "limited", unread: false })).toBe("retry");
     expect(atlasThreadState({ shelf: null, status: "ready", unread: true })).toBe("unread");
     expect(atlasThreadState({ shelf: null, status: "ready", unread: false })).toBe("idle");
+    expect(atlasThreadState({ shelf: null, status: "ready", unread: true, cacheWarm: true })).toBe(
+      "warm",
+    );
     expect(atlasThreadState({ shelf: "settled", status: "approval", unread: true })).toBe(
       "settled",
     );

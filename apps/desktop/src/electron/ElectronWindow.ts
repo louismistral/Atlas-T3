@@ -20,6 +20,8 @@ import {
   loadWindowsForegroundApi,
 } from "./WindowsForeground.ts";
 import { startWindowsForegroundFocusThread } from "./WindowsForegroundFocusThread.ts";
+// [Atlas] A22 : correcteur anglais + français
+import { applyAtlasSpellcheck } from "../atlas/spellcheck.ts";
 
 function windowsForegroundFocusTarget(window: Electron.BrowserWindow) {
   return {
@@ -240,6 +242,7 @@ export const make = Effect.gen(function* () {
       return Effect.try({
         try: () => {
           const window = new Electron.BrowserWindow(options);
+          applyAtlasSpellcheck(window); // [Atlas] A22 : correcteur anglais + français
           if (behavior?.auxiliary === true) auxiliaryWindows.add(window);
           return window;
         },

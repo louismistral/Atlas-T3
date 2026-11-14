@@ -67,7 +67,10 @@ export function AtlasCacheBar(props: {
   const share = left === null || ttl === null ? 0 : Math.min(1, left / ttl);
   const calls = t.calls > 1 ? ` (${t.calls} calls)` : "";
   return (
-    <div data-atlas="A4" className="mb-1.5 flex flex-col gap-1 px-1">
+    <div
+      data-atlas="A4"
+      className="relative -mt-6 flex flex-col gap-1 bg-linear-to-t from-background from-70% to-transparent px-1 pt-6 pb-1.5"
+    >
       {left !== null ? (
         <div className="flex items-center gap-2 text-2xs text-muted-foreground tabular-nums">
           <span className="relative h-1 flex-1 overflow-hidden rounded-full bg-muted">

@@ -4,7 +4,7 @@ import type { ServerProviderUsageWindow } from "@t3tools/contracts";
 import { collectLimitAccounts, formatResetsIn } from "@t3tools/shared/usageLimits";
 import { useNavigate } from "@tanstack/react-router";
 
-import { barColor } from "../../components/usage/UsageLimits";
+import { ProviderInstanceIcon } from "../../components/chat/ProviderInstanceIcon";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../components/ui/tooltip";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { cn } from "../../lib/utils";
@@ -37,30 +37,41 @@ export function AtlasQuotaFooter() {
                 <button
                   type="button"
                   onClick={() => void navigate({ to: "/usage" })}
-                  className="flex h-6 w-full cursor-pointer items-center gap-2 rounded-md px-1.5 text-left text-2xs text-sidebar-muted-foreground tabular-nums hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
+                  className="flex h-7 w-full cursor-pointer items-center gap-2 rounded-md px-1.5 text-left text-2xs text-sidebar-muted-foreground tabular-nums hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
                 />
               }
             >
-              <span
-                aria-hidden
-                className="size-2 shrink-0 rounded-full"
-                style={{ background: account.accentColor ?? barColor(account.driver) }}
+              <ProviderInstanceIcon
+                driverKind={account.driver}
+                displayName={name}
+                accentColor={account.accentColor}
+                size="compact"
               />
               <span className="min-w-0 flex-1 truncate text-xs">{name}</span>
-              <span className="relative h-1 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
-                <span
-                  className={cn(
-                    "absolute inset-y-0 left-0 rounded-full",
-                    (fiveHours ?? 0) >= 90 ? "bg-error" : "bg-sidebar-foreground/60",
-                  )}
-                  style={{ width: `${fiveHours ?? 0}%` }}
-                />
+              {/* 5 h en grand, semaine en petit dessous */}
+              <span className="flex w-16 shrink-0 flex-col gap-0.5">
+                <span className="relative h-1.5 overflow-hidden rounded-full bg-muted">
+                  <span
+                    className={cn(
+                      "absolute inset-y-0 left-0 rounded-full",
+                      (fiveHours ?? 0) >= 90 ? "bg-error" : "bg-sidebar-foreground/70",
+                    )}
+                    style={{ width: `${fiveHours ?? 0}%` }}
+                  />
+                </span>
+                <span className="relative h-0.5 overflow-hidden rounded-full bg-muted">
+                  <span
+                    className={cn(
+                      "absolute inset-y-0 left-0 rounded-full",
+                      (week ?? 0) >= 90 ? "bg-error" : "bg-sidebar-foreground/40",
+                    )}
+                    style={{ width: `${week ?? 0}%` }}
+                  />
+                </span>
               </span>
-              <span className="w-8 shrink-0 text-right">
-                {fiveHours === null ? "·" : `${fiveHours}%`}
-              </span>
-              <span className="w-12 shrink-0 text-right opacity-70">
-                wk {week === null ? "·" : `${week}%`}
+              <span className="flex w-9 shrink-0 flex-col items-end leading-none">
+                <span>{fiveHours === null ? "·" : `${fiveHours}%`}</span>
+                <span className="text-3xs opacity-60">{week === null ? "·" : `${week}%`}</span>
               </span>
             </TooltipTrigger>
             <TooltipPopup side="right">

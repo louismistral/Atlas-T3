@@ -9,6 +9,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../../components/ui/toolt
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { cn } from "../../lib/utils";
 import { environmentPresentations } from "../../state/presentation";
+import { weekPace } from "./weekPace";
 
 const used = (window: ServerProviderUsageWindow | undefined) =>
   window === undefined ? null : Math.round(Math.max(0, Math.min(100, window.usedPercent)));
@@ -86,6 +87,48 @@ export function AtlasQuotaFooter() {
           </Tooltip>
         );
       })}
+      <WeekPaceBar accounts={accounts} now={now} />
     </div>
+  );
+}
+
+// Somme des quotas semaine (0 → 100 × comptes), repère = part de la semaine écoulée depuis vendredi.
+function WeekPaceBar({
+  accounts,
+  now,
+}: {
+  accounts: ReturnType<typeof collectLimitAccounts>;
+  now: number;
+}) {
+  const weeks = accounts
+    .map((a) => used(a.limits.windows.find((w) => w.kind === "weekly")))
+    .filter((w): w is number => w !== null);
+  if (weeks.length === 0) return null;
+  const { total, max, elapsed, delta } = weekPace(weeks, now);
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <div className="flex h-4 items-center gap-2 px-1.5 text-2xs text-sidebar-muted-foreground tabular-nums" />
+        }
+      >
+        <span className="relative h-1 flex-1 rounded-full bg-muted">
+          <span
+            className="absolute inset-y-0 left-0 rounded-full bg-sidebar-foreground/50"
+            style={{ width: `${(total / max) * 100}%` }}
+          />
+          <span
+            className="absolute -inset-y-0.5 w-px bg-sidebar-foreground"
+            style={{ left: `${elapsed * 100}%` }}
+          />
+        </span>
+        <span className={cn("w-7 shrink-0 text-right", delta > 0 && "text-error")}>
+          {delta > 0 ? `+${delta}` : delta}
+        </span>
+      </TooltipTrigger>
+      <TooltipPopup side="right">
+        {`Semaine : ${total} / ${max} % utilisés, ${Math.round(elapsed * 100)} % de la semaine écoulée (depuis vendredi). ${delta > 0 ? `${delta} pts d'avance sur le rythme` : `${-delta} pts de marge`}`}
+      </TooltipPopup>
+    </Tooltip>
   );
 }

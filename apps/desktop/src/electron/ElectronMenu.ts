@@ -7,6 +7,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
 import * as Electron from "electron";
+import { menuLetters, withMnemonic } from "../atlas/menuLetters.ts"; // [Atlas] A26
 
 export interface ElectronMenuPosition {
   readonly x: number;
@@ -151,7 +152,8 @@ export const make = Effect.gen(function* () {
       template.push({ type: "separator" });
     };
 
-    for (const item of entries) {
+    const letters = menuLetters(entries.map((entry) => entry.label)); // [Atlas] A26
+    for (const [index, item] of entries.entries()) {
       if (item.separatorBefore) {
         appendSeparator();
         sectionStartedByExplicitSeparator = true;
@@ -167,7 +169,9 @@ export const make = Effect.gen(function* () {
       }
 
       const itemOption: Electron.MenuItemConstructorOptions = {
-        label: item.label,
+        // [Atlas] A26 : lettre soulignée et affichée à droite ; l'appuyer choisit l'entrée
+        label: withMnemonic(item.label, letters[index] ?? null),
+        ...(letters[index] ? { accelerator: letters[index], registerAccelerator: false } : {}),
         enabled: !item.disabled,
         ...(typeof item.checked === "boolean" ? { type: "checkbox", checked: item.checked } : {}),
       };

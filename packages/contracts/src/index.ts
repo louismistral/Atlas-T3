@@ -74,3 +74,4 @@ export * from "./secretReference.ts";
 export * from "./settingsSecretValue.ts";
 export * from "./clientRpcPermissions.ts";
 export * from "./atlas/turnTokens.ts"; // [Atlas] A4 : jetons du tour pour la barre du cache
+export * from "./atlas/cacheMode.ts"; // [Atlas] A24 : compacter / rien / garder chaud, par session

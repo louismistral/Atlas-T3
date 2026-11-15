@@ -9,7 +9,7 @@ import * as DateTime from "effect/DateTime";
 const MIN_CONTEXT_TOKENS = COMPACTION_SUGGESTION_MIN_TOKENS;
 // Start this long before the cache expires: enough for the session to resume
 // and send the compaction while the cache is still warm.
-const LEAD_MS = 2 * 60_000;
+const LEAD_MS = 3 * 60_000; // [Atlas] A24 : 3 min avant la fin du cache (T3 : 2)
 
 export type IdleCompactionRecords = Pick<
   OrchestrationV2ThreadProjection,
@@ -41,6 +41,7 @@ export function idleCompactionWindow(
     contextTransfers,
   }: IdleCompactionRecords,
   nowMs: number,
+  minTokens: number = MIN_CONTEXT_TOKENS, // [Atlas] A24 : 0 pour garder chaud
 ): {
   readonly runId: (typeof runs)[number]["id"];
   readonly startMs: number;
@@ -96,7 +97,7 @@ export function idleCompactionWindow(
     .filter((turn) => turn.providerThreadId === providerThread.id && turn.tokenUsage !== undefined)
     .map((turn) => turn.tokenUsage!)
     .toSorted((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
-  if ((usages[0]?.usedTokens ?? 0) < MIN_CONTEXT_TOKENS) return null;
+  if ((usages[0]?.usedTokens ?? 0) < minTokens) return null;
   // A request served fully from cache creates no cache entry and reports no
   // TTL, but it still refreshes the cache. Treat it as unknown and skip.
   const expiresAt = usages[0]?.promptCacheExpiresAt;

@@ -1,10 +1,19 @@
 // [Atlas] A4 : barre du cache au-dessus de la saisie (chrono) et jetons du dernier tour en pastilles.
-import type { OrchestrationV2ProviderTurn } from "@t3tools/contracts";
+import {
+  type AtlasCacheMode,
+  atlasCacheMode,
+  atlasNextCacheMode,
+  type OrchestrationV2ProviderTurn,
+  type ScopedThreadRef,
+} from "@t3tools/contracts";
 import {
   ArrowDownToLineIcon,
   ArrowUpFromLineIcon,
   DatabaseIcon,
+  CircleOffIcon,
   DollarSignIcon,
+  FlameIcon,
+  FoldVerticalIcon,
   PenLineIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -12,6 +21,8 @@ import { useEffect, useState } from "react";
 
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../components/ui/tooltip";
 import { cn } from "../../lib/utils";
+import { threadEnvironment } from "../../state/threads";
+import { useOrchestrationCommand } from "../../state/use-orchestration-command";
 import {
   apiCostUsd,
   formatCountdown,
@@ -51,8 +62,56 @@ function Pill(props: { icon: LucideIcon; value: string; label: string }) {
   );
 }
 
+// [Atlas] A24 : bouton à 3 états, le choix reste sur la session (tag)
+const MODE_UI: Record<AtlasCacheMode, { icon: LucideIcon; label: string }> = {
+  compact: { icon: FoldVerticalIcon, label: "Auto-compact 3 min before the cache expires" },
+  off: { icon: CircleOffIcon, label: "Auto-compact off" },
+  warm: { icon: FlameIcon, label: "Keep the cache warm: a short message renews it for 60 min" },
+};
+
+function CacheModeButton(props: {
+  threadRef: ScopedThreadRef;
+  tags: readonly string[] | undefined;
+}) {
+  const setTag = useOrchestrationCommand(threadEnvironment.setTag, { reportFailure: true });
+  const mode = atlasCacheMode(props.tags);
+  const ui = MODE_UI[mode];
+  const Icon = ui.icon;
+  const cycle = async () => {
+    for (const change of atlasNextCacheMode(mode).changes) {
+      await setTag({
+        environmentId: props.threadRef.environmentId,
+        input: { threadId: props.threadRef.threadId, ...change },
+      });
+    }
+  };
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            aria-label={ui.label}
+            onClick={() => void cycle()}
+            className={cn(
+              "inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-border/70 hover:bg-accent",
+              mode === "off" ? "text-muted-foreground/60" : "text-muted-foreground",
+              mode === "warm" && "text-warning",
+            )}
+          />
+        }
+      >
+        <Icon aria-hidden className="size-3" />
+      </TooltipTrigger>
+      <TooltipPopup side="top">{ui.label}</TooltipPopup>
+    </Tooltip>
+  );
+}
+
 export function AtlasCacheBar(props: {
   turns: readonly Pick<OrchestrationV2ProviderTurn, "tokenUsage" | "model">[] | undefined;
+  threadRef?: ScopedThreadRef | null; // [Atlas] A24
+  tags?: readonly string[] | undefined;
 }) {
   const latest = latestUsageTurn(props.turns ?? EMPTY);
   const expiresAt = latest?.usage.promptCacheExpiresAt
@@ -92,6 +151,7 @@ export function AtlasCacheBar(props: {
       <span className="w-10 shrink-0 text-right text-2xs text-muted-foreground tabular-nums">
         {left === null ? "·" : left > 0 ? formatCountdown(left) : "cold"}
       </span>
+      {props.threadRef ? <CacheModeButton threadRef={props.threadRef} tags={props.tags} /> : null}
       <span className="flex shrink-0 items-center gap-1">
         <Pill icon={DatabaseIcon} value={formatTokens(t.read)} label={`Read from cache${calls}`} />
         <Pill

@@ -1,8 +1,9 @@
 import {
+  atlasCacheMode, // [Atlas] A24
+  ATLAS_CACHE_WARM_TEXT,
   CommandId,
   IDLE_COMPACTION_TEXT,
   MessageId,
-  resolveIdleCompaction,
   resolveProjectProviderInstanceEnabled,
   type RunId,
   type ThreadId,
@@ -40,9 +41,11 @@ export const make = Effect.gen(function* () {
         const claudeInstance = Object.hasOwn(current.providerInstances, thread.providerInstanceId)
           ? current.providerInstances[thread.providerInstanceId]?.driver === "claudeAgent"
           : thread.providerInstanceId === "claudeAgent";
+        // [Atlas] A24 : le mode de la session (tag) remplace le réglage global ; par défaut on compacte
+        const mode = atlasCacheMode(thread.tags);
         if (
           !claudeInstance ||
-          resolveIdleCompaction(current, thread.providerInstanceId) !== "beforeCacheExpires" ||
+          mode === "off" ||
           !resolveProjectProviderInstanceEnabled(
             current,
             thread.projectId,
@@ -79,8 +82,7 @@ export const make = Effect.gen(function* () {
           },
         );
         if (
-          resolveIdleCompaction(current, records.thread.providerInstanceId) !==
-            "beforeCacheExpires" ||
+          atlasCacheMode(records.thread.tags) !== mode || // [Atlas] A24
           !resolveProjectProviderInstanceEnabled(
             current,
             records.thread.projectId,
@@ -100,11 +102,26 @@ export const make = Effect.gen(function* () {
           continue;
         }
         const nowMs = DateTime.toEpochMillis(yield* DateTime.now);
-        const window = idleCompactionWindow(records, nowMs);
+        const window = idleCompactionWindow(records, nowMs, mode === "warm" ? 0 : undefined); // [Atlas] A24
         if (window?.runId !== runId) return;
         if (nowMs < window.startMs) {
           yield* Effect.sleep(Duration.millis(window.startMs - nowMs));
           continue;
+        }
+        // [Atlas] A24 : garder chaud = un petit message qui relance le cache, au lieu de /compact
+        if (mode === "warm") {
+          yield* orchestrator.dispatch({
+            type: "message.dispatch",
+            commandId: CommandId.make(`server:atlas-warm:${threadId}:${runId}`),
+            messageId: MessageId.make(`atlas-warm:${threadId}:${runId}`),
+            threadId,
+            text: ATLAS_CACHE_WARM_TEXT,
+            attachments: [],
+            createdBy: "agent",
+            creationSource: "server",
+            dispatchMode: { type: "start_immediately" },
+          });
+          return;
         }
         yield* orchestrator.dispatch({
           type: "message.dispatch",

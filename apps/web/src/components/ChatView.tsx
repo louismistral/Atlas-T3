@@ -3575,7 +3575,11 @@ export default function ChatView(props: ChatViewProps) {
                   >
                     <ChildThreadApprovals threadRef={activeThreadRef} />
                     {/* [Atlas] A4 : barre du cache et jetons du dernier tour, au-dessus de la saisie */}
-                    <AtlasCacheBar turns={serverProjection?.providerTurns} />
+                    <AtlasCacheBar
+                      turns={serverProjection?.providerTurns}
+                      threadRef={activeThreadRef}
+                      tags={serverProjection?.thread.tags}
+                    />
                     <div className="relative">
                       <ComposerSurface.Shell contextRow={showComposerContextStrip}>
                         <ComposerSurface.Host

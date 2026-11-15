@@ -194,10 +194,11 @@ describe("idleCompactionWindow", () => {
 
 describe("IdleCompactionService", () => {
   it.effect.each([
-    { mode: "onReturn", reads: 0 },
-    { mode: "off", reads: 0 },
+    // [Atlas] A24 : le réglage global ne coupe plus la compaction, le mode de la session décide
+    { mode: "onReturn", reads: 1 },
+    { mode: "off", reads: 1 },
     { mode: "beforeCacheExpires", reads: 1 },
-    { mode: "beforeCacheExpires", override: "off", reads: 0 },
+    { mode: "beforeCacheExpires", override: "off", reads: 1 },
     { mode: "onReturn", override: "beforeCacheExpires", reads: 1 },
     { mode: "beforeCacheExpires", projectDisabled: true, reads: 0 },
     { mode: "beforeCacheExpires", enabled: false, reads: 0 },

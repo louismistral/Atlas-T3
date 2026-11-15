@@ -8,6 +8,7 @@ import { Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import ChatView from "./ChatView";
+import { AtlasPanes } from "../atlas/panes/AtlasPanes"; // [Atlas] A23
 import { BackgroundThreadContext } from "./chat/backgroundThread";
 import { SidebarInset } from "./ui/sidebar";
 import { useComposerDraftStore } from "../composerDraftStore";
@@ -229,7 +230,12 @@ export function ThreadRouteView({
       className="h-svh min-h-0 overflow-hidden overscroll-y-none md:h-dvh"
       inert={background}
     >
-      <BackgroundThreadContext value={background}>{view}</BackgroundThreadContext>
+      <BackgroundThreadContext value={background}>
+        {/* [Atlas] A23 : zone des sessions divisible façon Blender ; la zone active reçoit cette vue */}
+        <AtlasPanes routeThread={target.kind === "server" ? target.threadRef : null}>
+          {view}
+        </AtlasPanes>
+      </BackgroundThreadContext>
       {background ? null : redirect}
     </SidebarInset>
   );

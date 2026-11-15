@@ -2,16 +2,36 @@
 import type { SidebarThreadSummary } from "../../types";
 
 const HOUR = 3_600_000;
+const TEN_MINUTES = 600_000;
 
-// shortcut: Claude seulement (instances « claudeAgent… »), cache d'1 h compté depuis la fin du dernier tour ;
-// la barre au-dessus de la saisie, qui lit l'expiration réelle, fait foi. À remplacer si l'écart trompe.
-export function atlasThreadCacheLeftMs(
-  thread: Pick<SidebarThreadSummary, "modelSelection" | "latestRun">,
-  now: number,
+// shortcut: estimation locale, pas l'expiration réelle ; à remplacer si le fournisseur expose celle-ci.
+export function atlasThreadCacheTtlMs(
+  thread: Pick<SidebarThreadSummary, "modelSelection">,
 ): number {
-  if (!thread.modelSelection.instanceId.startsWith("claudeAgent")) return 0;
-  const end = Date.parse(thread.latestRun?.completedAt ?? "") + HOUR;
-  return Number.isFinite(end) ? Math.max(0, end - now) : 0;
+  const id = thread.modelSelection.instanceId;
+  return id.startsWith("claudeAgent")
+    ? HOUR
+    : id === "codex" || id.startsWith("codex_")
+      ? TEN_MINUTES
+      : 0;
 }
 
-export const ATLAS_CACHE_TTL_MS = HOUR;
+export function atlasThreadCacheLeftMs(
+  thread: Pick<
+    SidebarThreadSummary,
+    "modelSelection" | "latestRun" | "createdAt" | "latestUserMessageAt"
+  >,
+  now: number,
+): number {
+  const ttl = atlasThreadCacheTtlMs(thread);
+  if (!ttl) return 0;
+  const start =
+    ttl === HOUR
+      ? Date.parse(thread.latestRun?.completedAt ?? "")
+      : Math.max(
+          ...[thread.createdAt, thread.latestUserMessageAt, thread.latestRun?.completedAt].map(
+            (date) => Date.parse(date ?? "") || 0,
+          ),
+        );
+  return Number.isFinite(start) && start > 0 ? Math.max(0, Math.min(ttl, start + ttl - now)) : 0;
+}

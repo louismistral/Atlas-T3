@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { useNowMinute } from "../../hooks/useNowMinute";
 import type { SidebarThreadSummary } from "../../types";
-import { ATLAS_CACHE_TTL_MS, atlasThreadCacheLeftMs } from "../cache/threadCache";
+import { atlasThreadCacheTtlMs, atlasThreadCacheLeftMs } from "../cache/threadCache";
 
 export function AtlasRowTail(props: {
   thread: SidebarThreadSummary;
@@ -15,22 +15,23 @@ export function AtlasRowTail(props: {
 }) {
   const nowMinute = useNowMinute();
   const left = atlasThreadCacheLeftMs(props.thread, Date.parse(`${nowMinute}:00Z`));
+  const ttl = atlasThreadCacheTtlMs(props.thread);
   const minutes = Math.ceil(left / 60_000);
   return (
     <span data-atlas="A16" className="inline-flex items-center gap-1.5 text-xs">
       {left > 0 ? (
         <span
-          aria-label={`Cache warm for about ${minutes} min`}
+          aria-label={`Estimated cache warmth: ${minutes} min`}
           role="img"
           className="relative h-1 w-5 overflow-hidden rounded-full bg-muted"
         >
           <span
             className={
-              left > ATLAS_CACHE_TTL_MS / 3
+              left > ttl / 3
                 ? "absolute inset-y-0 left-0 rounded-full bg-success"
                 : "absolute inset-y-0 left-0 rounded-full bg-warning"
             }
-            style={{ width: `${(left / ATLAS_CACHE_TTL_MS) * 100}%` }}
+            style={{ width: `${(left / ttl) * 100}%` }}
           />
         </span>
       ) : null}

@@ -1,5 +1,9 @@
 # Usage and limits
 
+<!-- [Atlas] A16 : estimation de cache pour le regroupement des conversations. -->
+
+In the sidebar's **State** grouping, Codex threads appear under **Cache warm** for ten minutes after their latest message or completed turn. New threads start the timer when created. This is a visual estimate, not a reported cache expiration.
+
 Open **Usage** from the sidebar or the command palette, or press `mod+u` on web and
 desktop when the terminal is not focused. Customize `usage.open` in
 **Settings → Keybindings**.

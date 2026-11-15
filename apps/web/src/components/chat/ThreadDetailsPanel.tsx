@@ -44,6 +44,7 @@ import {
   THREAD_DETAILS_PANEL_LABEL_CLASS,
 } from "./threadDetailsPanelStyles";
 import { Menu, MenuPopup } from "../ui/menu";
+import { AtlasSkillsSync } from "../../atlas/skills/AtlasSkillsSync"; // [Atlas] A25
 
 const GitActionsControl = memo(BaseGitActionsControl);
 
@@ -289,6 +290,9 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
               {visible.context && props.usage.contextWindow ? (
                 <ThreadDetailsContext usage={props.usage.contextWindow} />
               ) : null}
+
+              {/* [Atlas] A25 : synchronisation des skills claude.ai */}
+              <AtlasSkillsSync />
 
               {/* Shown only when no section above has content, so an emptied card can be refilled. */}
               <div className="p-2 group-has-[>section>:last-child:not(:empty)]/details-items:hidden">

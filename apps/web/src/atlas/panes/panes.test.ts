@@ -35,4 +35,9 @@ it("la vue des sessions passe par les zones", () => {
     "utf8",
   );
   expect(src).toContain("<AtlasPanes routeThread=");
+  const controls = NodeFS.readFileSync(
+    new URL("../../components/chat/PanelLayoutControls.tsx", import.meta.url),
+    "utf8",
+  );
+  expect(controls).toContain("<AtlasPaneButtons />");
 });

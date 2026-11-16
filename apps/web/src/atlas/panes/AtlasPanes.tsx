@@ -5,7 +5,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import { Columns2Icon, Rows2Icon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { BackgroundThreadContext } from "../../components/chat/backgroundThread";
@@ -26,8 +26,10 @@ import {
   setRatio,
   splitPane,
 } from "./panes";
+import { PaneActionsContext } from "./paneActions";
 
 const TEXT = Schema.String;
+
 const NO_PARENT_PANEL = { openToolDiff: () => {}, runShellCommand: () => {} };
 let seq = 0;
 // Unique dans l'arbre suffit : l'heure plus un compteur.
@@ -181,16 +183,9 @@ function Leaf({ leaf, ctx }: { leaf: Extract<Pane, { kind: "leaf" }>; ctx: Ctx }
         isActive && !ctx.single && "ring-1 ring-primary/40 ring-inset",
       )}
     >
-      {/* Une seule zone : les boutons n'apparaissent qu'au survol du haut ; sinon un bandeau fin. */}
-      <div
-        className={cn(
-          "flex h-6 shrink-0 items-center gap-0.5 px-1.5",
-          ctx.single
-            ? "absolute top-0 left-1/2 z-20 -translate-x-1/2 rounded-b-md bg-background opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100"
-            : "border-b border-border/60",
-        )}
-      >
-        {ctx.single ? null : (
+      {/* Plusieurs zones : un bandeau fin, clic = zone active, croix = fermer. */}
+      {ctx.single ? null : (
+        <div className="flex h-6 shrink-0 items-center gap-0.5 border-b border-border/60 px-1.5">
           <button
             type="button"
             aria-label="Make this the active area"
@@ -205,20 +200,14 @@ function Leaf({ leaf, ctx }: { leaf: Extract<Pane, { kind: "leaf" }>; ctx: Ctx }
               )}
             />
           </button>
-        )}
-        <PaneButton label="Split right" onClick={() => split("row")}>
-          <Columns2Icon className="size-3" />
-        </PaneButton>
-        <PaneButton label="Split down" onClick={() => split("col")}>
-          <Rows2Icon className="size-3" />
-        </PaneButton>
-        {ctx.single ? null : (
           <PaneButton label="Close area" onClick={() => ctx.save(closePane(ctx.state, leaf.id))}>
             <XIcon className="size-3" />
           </PaneButton>
-        )}
+        </div>
+      )}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <PaneActionsContext value={{ split }}>{content}</PaneActionsContext>
       </div>
-      <div className="relative flex min-h-0 flex-1 flex-col">{content}</div>
     </section>
   );
 }

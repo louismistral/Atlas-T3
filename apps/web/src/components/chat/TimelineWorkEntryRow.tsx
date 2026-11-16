@@ -181,6 +181,36 @@ export function ViewedImagesTimelineRow({
 }) {
   const { threadRef, workspaceRoot, onImageExpand } = use(TimelineRowCtx);
   if (!threadRef) return null;
+  // [Atlas] A29 : sous un tour replié, une ligne de vignettes de même hauteur qui défile ; un clic
+  // agrandit, et la galerie passe d'une image à l'autre comme ailleurs.
+  if (row.strip) {
+    return (
+      <div className="flex gap-1.5 overflow-x-auto px-0.5 pb-1" data-image-gallery>
+        {row.paths.map((path) => {
+          const image = resolveViewedImageAsset(path, {
+            threadId: threadRef.threadId,
+            workspaceRoot,
+          });
+          return image ? (
+            <div
+              key={path}
+              className="h-16 shrink-0 [&_img]:h-16 [&_img]:w-auto [&_img]:max-w-none"
+            >
+              <ChatMarkdownAssetImage
+                environmentId={threadRef.environmentId}
+                resource={image.resource}
+                alt={image.alt}
+                srcFragment={image.srcFragment}
+                workspaceRoot={workspaceRoot}
+                maxHeightRem={4}
+                onImageExpand={onImageExpand}
+              />
+            </div>
+          ) : null;
+        })}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap items-start gap-2 px-0.5" data-image-gallery>
       {row.paths.map((path) => {

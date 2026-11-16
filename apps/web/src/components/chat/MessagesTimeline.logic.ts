@@ -553,6 +553,8 @@ type MessagesTimelineRowContent =
       id: string;
       createdAt: string;
       paths: ReadonlyArray<string>;
+      /** [Atlas] A29 : sous un tour replié, une seule ligne de petites images qui défile. */
+      strip?: true;
     }
   | {
       kind: "turn-fold";
@@ -671,11 +673,20 @@ function viewedImagesRows(
   groupId: string,
   createdAt: string,
   groupedEntries: ReadonlyArray<WorkLogEntry>,
+  strip = false, // [Atlas] A29
 ): Array<Extract<MessagesTimelineRow, { kind: "viewed-images" }>> {
   const paths = workEntriesViewedImagePaths(groupedEntries);
   return paths.length === 0
     ? []
-    : [{ kind: "viewed-images", id: `${groupId}:viewed-images`, createdAt, paths }];
+    : [
+        {
+          kind: "viewed-images",
+          id: `${groupId}:viewed-images`,
+          createdAt,
+          paths,
+          ...(strip ? { strip: true as const } : {}),
+        },
+      ];
 }
 
 export function resolveAssistantMessageCopyState({
@@ -1883,6 +1894,20 @@ export function deriveMessagesTimelineRows(input: {
         label: turnFold.label,
         expanded: input.expandedRunIds?.has(turnFold.runId) ?? false,
       });
+      // [Atlas] A29 : tour replié → toutes les images lues pendant le tour, en un bandeau sous « Worked for »
+      if (!(input.expandedRunIds?.has(turnFold.runId) ?? false)) {
+        nextRows.push(
+          ...viewedImagesRows(
+            `turn-fold:${turnFold.runId}`,
+            turnFold.createdAt,
+            [...turnFold.entryIds].flatMap((entryId) => {
+              const entry = timelineEntryById.get(entryId);
+              return entry?.kind === "work" ? [entry.entry] : [];
+            }),
+            true,
+          ),
+        );
+      }
     }
 
     if (collapsedEntryIds.has(timelineEntry.id)) {
@@ -2709,6 +2734,7 @@ function isRowUnchanged(a: MessagesTimelineRow, b: MessagesTimelineRow): boolean
       const bv = b as typeof a;
       return (
         a.createdAt === bv.createdAt &&
+        a.strip === bv.strip && // [Atlas] A29
         a.paths.length === bv.paths.length &&
         a.paths.every((path, index) => path === bv.paths[index])
       );

@@ -2363,8 +2363,8 @@ describe("deriveMessagesTimelineRows", () => {
     const paths = ["/repo/docs/sidebar.png", "/repo/docs/topbar.png"];
 
     expect(viewedImages(false)).toEqual([{ after: "work-live", paths }]);
-    // A settled turn's fold keeps hiding its work, images included, until it is opened.
-    expect(viewedImages(true)).toEqual([]);
+    // [Atlas] A29 : a settled turn's fold hides its work but shows its images in a strip.
+    expect(viewedImages(true)).toEqual([{ after: "turn-fold", paths }]);
     expect(viewedImages(true, new Set([runId]))).toEqual([{ after: "work-toggle", paths }]);
   });
 

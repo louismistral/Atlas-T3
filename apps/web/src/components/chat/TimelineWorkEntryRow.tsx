@@ -185,7 +185,10 @@ export function ViewedImagesTimelineRow({
   // agrandit, et la galerie passe d'une image à l'autre comme ailleurs.
   if (row.strip) {
     return (
-      <div className="flex gap-1.5 overflow-x-auto px-0.5 pb-1" data-image-gallery>
+      <div
+        className="flex min-w-0 max-w-full gap-1.5 overflow-x-auto px-0.5 pb-1 scrollbar-thumb-foreground/18 scrollbar-track-transparent [scrollbar-width:thin] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-3 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-foreground/18 [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-foreground/28 [&::-webkit-scrollbar-track]:mx-1 [&::-webkit-scrollbar-track]:bg-transparent"
+        data-image-gallery
+      >
         {row.paths.map((path) => {
           const image = resolveViewedImageAsset(path, {
             threadId: threadRef.threadId,
@@ -212,23 +215,27 @@ export function ViewedImagesTimelineRow({
     );
   }
   return (
-    <div className="flex flex-wrap items-start gap-2 px-0.5" data-image-gallery>
+    <div
+      className="flex min-w-0 max-w-full items-start gap-2 overflow-x-auto px-0.5 pb-1 scrollbar-thumb-foreground/18 scrollbar-track-transparent [scrollbar-width:thin] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-3 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-foreground/18 [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-foreground/28 [&::-webkit-scrollbar-track]:mx-1 [&::-webkit-scrollbar-track]:bg-transparent"
+      data-image-gallery
+    >
       {row.paths.map((path) => {
         const image = resolveViewedImageAsset(path, {
           threadId: threadRef.threadId,
           workspaceRoot,
         });
         return image ? (
-          <ChatMarkdownAssetImage
-            key={path}
-            environmentId={threadRef.environmentId}
-            resource={image.resource}
-            alt={image.alt}
-            srcFragment={image.srcFragment}
-            workspaceRoot={workspaceRoot}
-            maxHeightRem={10}
-            onImageExpand={onImageExpand}
-          />
+          <div key={path} className="shrink-0">
+            <ChatMarkdownAssetImage
+              environmentId={threadRef.environmentId}
+              resource={image.resource}
+              alt={image.alt}
+              srcFragment={image.srcFragment}
+              workspaceRoot={workspaceRoot}
+              maxHeightRem={10}
+              onImageExpand={onImageExpand}
+            />
+          </div>
         ) : null;
       })}
     </div>

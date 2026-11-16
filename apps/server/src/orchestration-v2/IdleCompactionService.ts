@@ -2,6 +2,7 @@ import {
   atlasCacheMode, // [Atlas] A24
   ATLAS_CACHE_WARM_TEXT,
   atlasWarmCount,
+  atlasWarmQuietHour,
   atlasWarmTag,
   CommandId,
   IDLE_COMPACTION_TEXT,
@@ -128,6 +129,8 @@ export const make = Effect.gen(function* () {
         }
         // [Atlas] A24 : garder chaud = un petit message qui relance le cache, au lieu de /compact
         if (mode === "warm") {
+          // La nuit (00h-08h), on laisse le cache expirer ; il ne repart pas tout seul le matin.
+          if (atlasWarmQuietHour(nowMs)) return;
           // Compteur de relances d'affilée, affiché à la place de la flamme
           for (const [tag, tagged] of [
             ...(warmCount > 0 ? [[atlasWarmTag(warmCount), false] as const] : []),

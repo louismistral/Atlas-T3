@@ -23,34 +23,24 @@ export function atlasCacheMode(tags: ReadonlyArray<string> | undefined): AtlasCa
   return "compact";
 }
 
-/** Le mode suivant du bouton, et les tags à poser ou enlever pour y passer. */
-export function atlasNextCacheMode(
-  mode: AtlasCacheMode,
+/** Les tags à poser ou enlever pour passer au mode choisi (un seul mode actif à la fois). */
+export function atlasCacheModeChanges(
+  target: AtlasCacheMode,
   tags?: ReadonlyArray<string>,
-): {
-  readonly next: AtlasCacheMode;
-  readonly changes: ReadonlyArray<{ readonly tag: string; readonly tagged: boolean }>;
-} {
-  switch (mode) {
-    case "compact":
-      return { next: "off", changes: [{ tag: ATLAS_CACHE_TAG.off, tagged: true }] };
-    case "off":
-      return {
-        next: "warm",
-        changes: [
-          { tag: ATLAS_CACHE_TAG.off, tagged: false },
-          { tag: ATLAS_CACHE_TAG.warm, tagged: true },
-        ],
-      };
-    case "warm":
-      return {
-        next: "compact",
-        changes: [
-          { tag: ATLAS_CACHE_TAG.warm, tagged: false },
-          ...(atlasWarmCount(tags) > 0
-            ? [{ tag: atlasWarmTag(atlasWarmCount(tags)), tagged: false }]
-            : []),
-        ],
-      };
+): ReadonlyArray<{ readonly tag: string; readonly tagged: boolean }> {
+  const changes: Array<{ tag: string; tagged: boolean }> = [];
+  for (const mode of ["off", "warm"] as const) {
+    const has = tags?.includes(ATLAS_CACHE_TAG[mode]) ?? false;
+    if (has !== (target === mode)) changes.push({ tag: ATLAS_CACHE_TAG[mode], tagged: !has });
   }
+  const count = atlasWarmCount(tags);
+  if (target !== "warm" && count > 0) changes.push({ tag: atlasWarmTag(count), tagged: false });
+  return changes;
+}
+
+const LOCAL_HOUR = new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23" });
+
+/** Pas de relance « garder chaud » entre 00h et 08h (heure locale) : le cache expire, rien ne repart le matin. */
+export function atlasWarmQuietHour(atMs: number): boolean {
+  return Number(LOCAL_HOUR.format(atMs)) < 8;
 }

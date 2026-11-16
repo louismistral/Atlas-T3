@@ -2,7 +2,7 @@
 import {
   type AtlasCacheMode,
   atlasCacheMode,
-  atlasNextCacheMode,
+  atlasCacheModeChanges,
   atlasWarmCount,
   type OrchestrationV2ProviderTurn,
   type ScopedThreadRef,
@@ -69,20 +69,21 @@ const MODE_UI: Record<AtlasCacheMode, { icon: LucideIcon; label: string }> = {
   off: { icon: CircleOffIcon, label: "Auto-compact off" },
   warm: {
     icon: FlameIcon,
-    label: "Keep the cache warm: a short message renews it for 60 min (number = renewals in a row)",
+    label:
+      "Keep the cache warm: a short message renews it for 60 min, not between midnight and 8am (number = renewals in a row)",
   },
 };
 
-function CacheModeButton(props: {
+// [Atlas] A24 : trois boutons, un seul actif ; le choix reste sur la session (tag)
+function CacheModeButtons(props: {
   threadRef: ScopedThreadRef;
   tags: readonly string[] | undefined;
 }) {
   const setTag = useOrchestrationCommand(threadEnvironment.setTag, { reportFailure: true });
-  const mode = atlasCacheMode(props.tags);
-  const ui = MODE_UI[mode];
-  const Icon = ui.icon;
-  const cycle = async () => {
-    for (const change of atlasNextCacheMode(mode, props.tags).changes) {
+  const current = atlasCacheMode(props.tags);
+  const warmCount = atlasWarmCount(props.tags);
+  const choose = async (target: AtlasCacheMode) => {
+    for (const change of atlasCacheModeChanges(target, props.tags)) {
       await setTag({
         environmentId: props.threadRef.environmentId,
         input: { threadId: props.threadRef.threadId, ...change },
@@ -90,29 +91,47 @@ function CacheModeButton(props: {
     }
   };
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <button
-            type="button"
-            aria-label={ui.label}
-            onClick={() => void cycle()}
-            className={cn(
-              "inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-border/70 hover:bg-accent",
-              mode === "off" ? "text-muted-foreground/60" : "text-muted-foreground",
-              mode === "warm" && "text-warning",
-            )}
-          />
-        }
-      >
-        {mode === "warm" && atlasWarmCount(props.tags) > 0 ? (
-          <span className="text-2xs font-medium tabular-nums">{atlasWarmCount(props.tags)}</span>
-        ) : (
-          <Icon aria-hidden className="size-3" />
-        )}
-      </TooltipTrigger>
-      <TooltipPopup side="top">{ui.label}</TooltipPopup>
-    </Tooltip>
+    <span
+      role="radiogroup"
+      aria-label="Cache before it expires"
+      className="inline-flex shrink-0 items-center rounded-full border border-border/70 p-px"
+    >
+      {(["compact", "warm", "off"] as const).map((mode) => {
+        const ui = MODE_UI[mode];
+        const Icon = ui.icon;
+        const active = mode === current;
+        return (
+          <Tooltip key={mode}>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  aria-label={ui.label}
+                  onClick={() => void choose(mode)}
+                  className={cn(
+                    "inline-flex size-4.5 items-center justify-center rounded-full",
+                    active
+                      ? mode === "warm"
+                        ? "bg-warning/15 text-warning"
+                        : "bg-accent text-foreground"
+                      : "text-muted-foreground/60 hover:text-foreground",
+                  )}
+                />
+              }
+            >
+              {mode === "warm" && active && warmCount > 0 ? (
+                <span className="text-2xs font-medium tabular-nums">{warmCount}</span>
+              ) : (
+                <Icon aria-hidden className="size-3" />
+              )}
+            </TooltipTrigger>
+            <TooltipPopup side="top">{ui.label}</TooltipPopup>
+          </Tooltip>
+        );
+      })}
+    </span>
   );
 }
 
@@ -159,7 +178,7 @@ export function AtlasCacheBar(props: {
       <span className="w-10 shrink-0 text-right text-2xs text-muted-foreground tabular-nums">
         {left === null ? "·" : left > 0 ? formatCountdown(left) : "cold"}
       </span>
-      {props.threadRef ? <CacheModeButton threadRef={props.threadRef} tags={props.tags} /> : null}
+      {props.threadRef ? <CacheModeButtons threadRef={props.threadRef} tags={props.tags} /> : null}
       <span className="flex shrink-0 items-center gap-1">
         <Pill icon={DatabaseIcon} value={formatTokens(t.read)} label={`Read from cache${calls}`} />
         <Pill

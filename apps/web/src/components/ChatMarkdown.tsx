@@ -197,6 +197,7 @@ import { PullRequestLinkPreview } from "./pullRequest/PullRequestLinkPreview";
 import { MarkdownCodeBlock, SuspenseShikiCodeBlock } from "./chat/MarkdownCodeBlock";
 import { createMarkdownRenderer } from "./chat/markdownRenderer";
 import { splitMarkdownBlocks } from "./chat/markdownStreamBlocks";
+import { wrapSpacedWindowsPathDestinations } from "../atlas/markdown/spacedPaths"; // [Atlas] A28 : chemins Windows avec espaces
 import { MarkdownMermaidCodeBlock } from "./chat/MarkdownMermaidCodeBlock";
 import { MarkdownTable } from "./chat/MarkdownTable";
 import { MarkdownDetails } from "./chat/MarkdownDetails";
@@ -1807,7 +1808,7 @@ const MarkdownSource = memo(function MarkdownSource({
 });
 
 function ChatMarkdown({
-  text,
+  text: authoredText,
   className,
   inline = false,
   lineBreaks = false,
@@ -1816,6 +1817,7 @@ function ChatMarkdown({
   renderInsights = false,
   ...props
 }: ChatMarkdownProps) {
+  const text = wrapSpacedWindowsPathDestinations(authoredText); // [Atlas] A28 : chemins Windows avec espaces
   const { componentState, handleCopy, markdownRef, localMediaPreview, closeLocalMediaPreview } =
     useChatMarkdownState({ text, inline, ...props });
   const hasInsights = renderInsights && text.includes("★ Insight");

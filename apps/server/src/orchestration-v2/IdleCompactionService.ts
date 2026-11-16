@@ -1,6 +1,8 @@
 import {
   atlasCacheMode, // [Atlas] A24
   ATLAS_CACHE_WARM_TEXT,
+  atlasWarmCount,
+  atlasWarmTag,
   CommandId,
   IDLE_COMPACTION_TEXT,
   MessageId,
@@ -101,8 +103,24 @@ export const make = Effect.gen(function* () {
           runId = latestRun.id;
           continue;
         }
+        // [Atlas] A24 : un tour qui ne vient pas du maintien du cache remet le compteur de relances à zéro
+        let warmCount = atlasWarmCount(records.thread.tags);
+        const userText = records.messages.find(
+          (message) => message.id === latestRun?.userMessageId,
+        )?.text;
+        if (warmCount > 0 && userText !== undefined && userText !== ATLAS_CACHE_WARM_TEXT) {
+          yield* orchestrator.dispatch({
+            type: "thread.tag.set",
+            commandId: CommandId.make(`server:atlas-warm-reset:${threadId}:${runId}`),
+            threadId,
+            tag: atlasWarmTag(warmCount),
+            tagged: false,
+          });
+          warmCount = 0;
+        }
         const nowMs = DateTime.toEpochMillis(yield* DateTime.now);
-        const window = idleCompactionWindow(records, nowMs, mode === "warm" ? 0 : undefined); // [Atlas] A24
+        // [Atlas] A24 : compacter seulement au-delà de 200K de contexte ; garder chaud quelle que soit la taille
+        const window = idleCompactionWindow(records, nowMs, mode === "warm" ? 0 : 200_000);
         if (window?.runId !== runId) return;
         if (nowMs < window.startMs) {
           yield* Effect.sleep(Duration.millis(window.startMs - nowMs));
@@ -110,6 +128,19 @@ export const make = Effect.gen(function* () {
         }
         // [Atlas] A24 : garder chaud = un petit message qui relance le cache, au lieu de /compact
         if (mode === "warm") {
+          // Compteur de relances d'affilée, affiché à la place de la flamme
+          for (const [tag, tagged] of [
+            ...(warmCount > 0 ? [[atlasWarmTag(warmCount), false] as const] : []),
+            [atlasWarmTag(warmCount + 1), true] as const,
+          ]) {
+            yield* orchestrator.dispatch({
+              type: "thread.tag.set",
+              commandId: CommandId.make(`server:atlas-warm-count:${threadId}:${runId}:${tag}`),
+              threadId,
+              tag,
+              tagged,
+            });
+          }
           yield* orchestrator.dispatch({
             type: "message.dispatch",
             commandId: CommandId.make(`server:atlas-warm:${threadId}:${runId}`),

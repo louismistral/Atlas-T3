@@ -1,7 +1,13 @@
 // @effect-diagnostics nodeBuiltinImport:off - lit les fichiers source de T3.
 // [Atlas] A24 : bouton du cache à 3 états, choix gardé par session.
 import * as NodeFS from "node:fs";
-import { ATLAS_CACHE_TAG, atlasCacheMode, atlasNextCacheMode } from "@t3tools/contracts";
+import {
+  ATLAS_CACHE_TAG,
+  atlasCacheMode,
+  atlasNextCacheMode,
+  atlasWarmCount,
+  atlasWarmTag,
+} from "@t3tools/contracts";
 import { expect, it } from "vite-plus/test";
 
 it("compact par défaut, puis off, garder chaud, et retour", () => {
@@ -20,11 +26,20 @@ it("compact par défaut, puis off, garder chaud, et retour", () => {
   expect(tags).toEqual([]);
 });
 
+it("compte les relances d'affilée et les efface en quittant garder chaud", () => {
+  expect(atlasWarmCount(undefined)).toBe(0);
+  expect(atlasWarmCount(["x", atlasWarmTag(3)])).toBe(3);
+  const changes = atlasNextCacheMode("warm", [ATLAS_CACHE_TAG.warm, atlasWarmTag(2)]).changes;
+  expect(changes).toContainEqual({ tag: "atlas:warm-2", tagged: false });
+});
+
 it("le serveur suit le mode de la session et compacte 3 min avant", () => {
   const read = (p: string) => NodeFS.readFileSync(new URL(p, import.meta.url), "utf8");
   const service = read("../../../../server/src/orchestration-v2/IdleCompactionService.ts");
   expect(service).toContain("atlasCacheMode(thread.tags)");
   expect(service).toContain("ATLAS_CACHE_WARM_TEXT");
+  expect(service).toContain('mode === "warm" ? 0 : 200_000');
+  expect(service).toContain("atlasWarmTag(warmCount + 1)");
   expect(read("../../../../server/src/orchestration-v2/IdleCompaction.ts")).toContain(
     "const LEAD_MS = 3 * 60_000;",
   );

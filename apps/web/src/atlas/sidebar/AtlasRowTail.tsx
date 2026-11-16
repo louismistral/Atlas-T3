@@ -1,4 +1,5 @@
 // [Atlas] A16 : fin de ligne de la barre Atlas : mini barre du cache, temps, icône d'état (ou cache chaud).
+import { atlasWarmCount } from "@t3tools/contracts";
 import { FlameIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -41,7 +42,16 @@ export function AtlasRowTail(props: {
         aria-label={props.statusLabel ?? (left > 0 ? "Cache warm" : undefined)}
       >
         {props.status ??
-          (left > 0 ? <FlameIcon aria-hidden className="size-3 text-warning" /> : null)}
+          (left > 0 ? (
+            // [Atlas] A24 : après une relance automatique du cache, son numéro à la place de la flamme
+            atlasWarmCount(props.thread.source.tags) > 0 ? (
+              <span className="text-2xs font-medium text-warning tabular-nums">
+                {atlasWarmCount(props.thread.source.tags)}
+              </span>
+            ) : (
+              <FlameIcon aria-hidden className="size-3 text-warning" />
+            )
+          ) : null)}
       </span>
     </span>
   );

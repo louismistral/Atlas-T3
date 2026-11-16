@@ -3,6 +3,7 @@ import {
   type AtlasCacheMode,
   atlasCacheMode,
   atlasNextCacheMode,
+  atlasWarmCount,
   type OrchestrationV2ProviderTurn,
   type ScopedThreadRef,
 } from "@t3tools/contracts";
@@ -66,7 +67,10 @@ function Pill(props: { icon: LucideIcon; value: string; label: string }) {
 const MODE_UI: Record<AtlasCacheMode, { icon: LucideIcon; label: string }> = {
   compact: { icon: FoldVerticalIcon, label: "Auto-compact 3 min before the cache expires" },
   off: { icon: CircleOffIcon, label: "Auto-compact off" },
-  warm: { icon: FlameIcon, label: "Keep the cache warm: a short message renews it for 60 min" },
+  warm: {
+    icon: FlameIcon,
+    label: "Keep the cache warm: a short message renews it for 60 min (number = renewals in a row)",
+  },
 };
 
 function CacheModeButton(props: {
@@ -78,7 +82,7 @@ function CacheModeButton(props: {
   const ui = MODE_UI[mode];
   const Icon = ui.icon;
   const cycle = async () => {
-    for (const change of atlasNextCacheMode(mode).changes) {
+    for (const change of atlasNextCacheMode(mode, props.tags).changes) {
       await setTag({
         environmentId: props.threadRef.environmentId,
         input: { threadId: props.threadRef.threadId, ...change },
@@ -101,7 +105,11 @@ function CacheModeButton(props: {
           />
         }
       >
-        <Icon aria-hidden className="size-3" />
+        {mode === "warm" && atlasWarmCount(props.tags) > 0 ? (
+          <span className="text-2xs font-medium tabular-nums">{atlasWarmCount(props.tags)}</span>
+        ) : (
+          <Icon aria-hidden className="size-3" />
+        )}
       </TooltipTrigger>
       <TooltipPopup side="top">{ui.label}</TooltipPopup>
     </Tooltip>

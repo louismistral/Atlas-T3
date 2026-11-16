@@ -6,7 +6,16 @@ export type AtlasCacheMode = "compact" | "off" | "warm";
 
 export const ATLAS_CACHE_TAG = { off: "atlas:cache-off", warm: "atlas:cache-warm" } as const;
 
-export const ATLAS_CACHE_WARM_TEXT = "Keep-alive: reply with just ok.";
+// Le CLAUDE.md de Louis dit à Claude de répondre « cache chaud » sans rien faire d'autre.
+export const ATLAS_CACHE_WARM_TEXT = "cache chaud";
+
+/** Combien de relances automatiques d'affilée (tag atlas:warm-N), 0 sans relance. */
+export function atlasWarmCount(tags: ReadonlyArray<string> | undefined): number {
+  const tag = tags?.find((value) => /^atlas:warm-\d+$/.test(value));
+  return tag === undefined ? 0 : Number(tag.slice("atlas:warm-".length));
+}
+
+export const atlasWarmTag = (count: number) => `atlas:warm-${count}`;
 
 export function atlasCacheMode(tags: ReadonlyArray<string> | undefined): AtlasCacheMode {
   if (tags?.includes(ATLAS_CACHE_TAG.off)) return "off";
@@ -15,7 +24,10 @@ export function atlasCacheMode(tags: ReadonlyArray<string> | undefined): AtlasCa
 }
 
 /** Le mode suivant du bouton, et les tags à poser ou enlever pour y passer. */
-export function atlasNextCacheMode(mode: AtlasCacheMode): {
+export function atlasNextCacheMode(
+  mode: AtlasCacheMode,
+  tags?: ReadonlyArray<string>,
+): {
   readonly next: AtlasCacheMode;
   readonly changes: ReadonlyArray<{ readonly tag: string; readonly tagged: boolean }>;
 } {
@@ -31,6 +43,14 @@ export function atlasNextCacheMode(mode: AtlasCacheMode): {
         ],
       };
     case "warm":
-      return { next: "compact", changes: [{ tag: ATLAS_CACHE_TAG.warm, tagged: false }] };
+      return {
+        next: "compact",
+        changes: [
+          { tag: ATLAS_CACHE_TAG.warm, tagged: false },
+          ...(atlasWarmCount(tags) > 0
+            ? [{ tag: atlasWarmTag(atlasWarmCount(tags)), tagged: false }]
+            : []),
+        ],
+      };
   }
 }

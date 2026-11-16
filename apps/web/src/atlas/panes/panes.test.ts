@@ -4,6 +4,7 @@ import * as NodeFS from "node:fs";
 import { expect, it } from "vite-plus/test";
 import {
   closePane,
+  crossingSeparator,
   dragSeparator,
   leaves,
   parsePanes,
@@ -50,6 +51,15 @@ it("les séparations alignées bougent ensemble, Maj en bouge une seule, et elle
   ]);
   const alone = dragSeparator(state, "left", 0.3, { alone: true, snap: 0.01 });
   expect(alone).toEqual([{ id: "left", ratio: 0.3 }]);
+  // Maj lâchée près d'une autre : elle s'y raccroche quand même.
+  expect(dragSeparator(state, "left", 0.505, { alone: true, snap: 0.01 })).toEqual([
+    { id: "left", ratio: 0.5 },
+  ]);
+  // À l'angle où elles se rejoignent, on prend aussi la séparation de l'autre sens.
+  const tol = { x: 0.01, y: 0.01 };
+  expect(crossingSeparator(state, "v", { x: 0.5, y: 0.495 }, tol)).toBe("left");
+  expect(crossingSeparator(state, "left", { x: 0.495, y: 0.5 }, tol)).toBe("v");
+  expect(crossingSeparator(state, "v", { x: 0.5, y: 0.2 }, tol)).toBeUndefined();
   // Désalignée, elle bouge seule, puis se raccroche à l'autre en passant près d'elle.
   state = setRatios(state, alone);
   expect(dragSeparator(state, "right", 0.7, opts)).toEqual([{ id: "right", ratio: 0.7 }]);

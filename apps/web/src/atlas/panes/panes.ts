@@ -85,6 +85,9 @@ interface Separator {
   readonly pos: number;
   readonly start: number;
   readonly size: number;
+  /** Ses deux bouts, sur l'autre axe. */
+  readonly from: number;
+  readonly to: number;
   /** Les divisions qui la contiennent : elle bouge quand l'une d'elles bouge. */
   readonly inside: ReadonlyArray<string>;
 }
@@ -105,7 +108,16 @@ function separators(
     : { ...box, y: box.y + cut, h: box.h - cut };
   const within = [...inside, pane.id];
   return [
-    { id: pane.id, dir: pane.dir, pos: start + cut, start, size, inside },
+    {
+      id: pane.id,
+      dir: pane.dir,
+      pos: start + cut,
+      start,
+      size,
+      from: row ? box.y : box.x,
+      to: row ? box.y + box.h : box.x + box.w,
+      inside,
+    },
     ...separators(pane.a, a, within),
     ...separators(pane.b, b, within),
   ];
@@ -116,7 +128,7 @@ const ALIGNED = 0.002;
 
 /**
  * Tirer une séparation jusqu'à `pos` : celles qui sont alignées avec elle suivent, et l'ensemble
- * s'accroche aux autres séparations de même sens à moins de `snap`. `alone` (Maj) : elle seule, libre.
+ * s'accroche aux autres séparations de même sens à moins de `snap`. `alone` (Maj) : elle seule.
  */
 export function dragSeparator(
   state: PanesState,
@@ -131,14 +143,35 @@ export function dragSeparator(
   // shortcut: alignées suffit, même sans se toucher ; exiger qu'elles se touchent si ça gêne.
   const group = opts.alone ? [own] : same.filter((sep) => Math.abs(sep.pos - own.pos) < ALIGNED);
   const moving = new Set(group.map((sep) => sep.id));
-  const anchors = opts.alone
-    ? []
-    : same
-        .filter((sep) => !moving.has(sep.id) && !sep.inside.some((parent) => moving.has(parent)))
-        .filter((sep) => Math.abs(sep.pos - pos) < opts.snap)
-        .toSorted((x, y) => Math.abs(x.pos - pos) - Math.abs(y.pos - pos));
+  const anchors = same
+    .filter((sep) => !moving.has(sep.id) && !sep.inside.some((parent) => moving.has(parent)))
+    .filter((sep) => Math.abs(sep.pos - pos) < opts.snap)
+    .toSorted((x, y) => Math.abs(x.pos - pos) - Math.abs(y.pos - pos));
   const target = anchors[0]?.pos ?? pos;
   return group.map((sep) => ({ id: sep.id, ratio: clampRatio((target - sep.start) / sep.size) }));
+}
+
+/** La séparation de l'autre sens qui rejoint celle-ci au point `at` : là, on tire les deux (un angle). */
+export function crossingSeparator(
+  state: PanesState,
+  id: string,
+  at: { readonly x: number; readonly y: number },
+  tol: { readonly x: number; readonly y: number },
+): string | undefined {
+  const all = separators(state.root);
+  const own = all.find((sep) => sep.id === id);
+  if (own === undefined) return undefined;
+  const row = own.dir === "row";
+  const along = row ? at.y : at.x;
+  const near = row ? tol.y : tol.x;
+  const reach = row ? tol.x : tol.y;
+  return all.find(
+    (sep) =>
+      sep.dir !== own.dir &&
+      Math.abs(sep.pos - along) < near &&
+      own.pos > sep.from - reach &&
+      own.pos < sep.to + reach,
+  )?.id;
 }
 
 export function setRatios(

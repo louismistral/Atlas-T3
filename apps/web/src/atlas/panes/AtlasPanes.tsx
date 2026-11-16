@@ -16,6 +16,7 @@ import { useThreadShell } from "../../state/entities";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import {
   closePane,
+  crossingSeparator,
   dragSeparator,
   leaves,
   type Pane,
@@ -145,6 +146,17 @@ export function AtlasPanes(props: { routeThread: ScopedThreadRef | null; childre
 function PaneNode({ pane, ctx }: { pane: Pane; ctx: Ctx }) {
   if (pane.kind === "leaf") return <Leaf leaf={pane} ctx={ctx} />;
   const row = pane.dir === "row";
+  // À un angle (là où une séparation de l'autre sens rejoint celle-ci), on tire les deux à la fois.
+  const cornerAt = (event: React.PointerEvent<HTMLDivElement>) => {
+    const box = ctx.mosaic.current?.getBoundingClientRect();
+    if (box === undefined) return undefined;
+    return crossingSeparator(
+      ctx.state,
+      pane.id,
+      { x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height },
+      { x: SNAP_PX / box.width, y: SNAP_PX / box.height },
+    );
+  };
   // Pendant le glissement, on bouge les séparations directement ; l'état n'est gardé qu'au relâché.
   const drag = (event: React.PointerEvent<HTMLDivElement>) => {
     const handle = event.currentTarget;
@@ -154,14 +166,17 @@ function PaneNode({ pane, ctx }: { pane: Pane; ctx: Ctx }) {
     event.preventDefault();
     handle.setPointerCapture(event.pointerId);
     const box = root.getBoundingClientRect();
-    const extent = row ? box.width : box.height;
+    const corner = cornerAt(event);
     let ratios: ReturnType<typeof dragSeparator> = [];
     const move = (e: PointerEvent) => {
-      const pos = row ? (e.clientX - box.left) / box.width : (e.clientY - box.top) / box.height;
-      ratios = dragSeparator(ctx.state, pane.id, pos, {
-        alone: e.shiftKey,
-        snap: SNAP_PX / extent,
-      });
+      const x = (e.clientX - box.left) / box.width;
+      const y = (e.clientY - box.top) / box.height;
+      const pull = (id: string, alongX: boolean) =>
+        dragSeparator(ctx.state, id, alongX ? x : y, {
+          alone: e.shiftKey,
+          snap: SNAP_PX / (alongX ? box.width : box.height),
+        });
+      ratios = [...pull(pane.id, row), ...(corner === undefined ? [] : pull(corner, !row))];
       for (const { id, ratio } of ratios) {
         const first = root.querySelector<HTMLElement>(`[data-atlas-split="${id}"]`);
         if (first) first.style.flexBasis = `${ratio * 100}%`;
@@ -191,6 +206,11 @@ function PaneNode({ pane, ctx }: { pane: Pane; ctx: Ctx }) {
         role="separator"
         aria-orientation={row ? "vertical" : "horizontal"}
         onPointerDown={drag}
+        onPointerMove={(event) => {
+          if (event.buttons === 0) {
+            event.currentTarget.style.cursor = cornerAt(event) === undefined ? "" : "move";
+          }
+        }}
         className={cn(
           "group/sep z-10 flex shrink-0 touch-none items-center justify-center select-none",
           row ? "-mx-1 w-2 cursor-col-resize" : "-my-1 h-2 cursor-row-resize",

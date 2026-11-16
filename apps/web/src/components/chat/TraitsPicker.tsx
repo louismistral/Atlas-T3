@@ -245,7 +245,7 @@ export function getReasoningTraitStep(input: {
   reportedModelSelection: ModelSelection | null | undefined;
   prompt: string;
   includePlanAgent?: boolean | undefined;
-  direction: 1 | -1;
+  direction: 1 | -1 | { readonly level: number }; // [Atlas] A28 : un niveau précis, 1 = le plus bas
 }) {
   const selected = getSelectedTraits(
     input.provider,
@@ -269,6 +269,15 @@ export function getReasoningTraitStep(input: {
           { instanceId: input.instanceId, model: input.model, options: input.modelOptions ?? [] },
           input.reportedModelSelection,
         );
+  // [Atlas] A28 : aller droit au niveau demandé parmi les choix (le dernier pour un niveau trop haut)
+  if (typeof input.direction === "object") {
+    const levels = choices.filter((option) => option.id !== "ultrathink");
+    const target = levels[Math.min(input.direction.level, levels.length) - 1];
+    const change = target && getTraitSelectChange(selected, descriptor, input.prompt, target.id);
+    return change?.modelOptions
+      ? { prompt: change.prompt, modelOptions: change.modelOptions }
+      : null;
+  }
   // Walk the full catalog order so a typed Ultrathink keeps its place, then land on a pickable level.
   const ordered = input.direction > 0 ? descriptor.options : descriptor.options.toReversed();
   const position =

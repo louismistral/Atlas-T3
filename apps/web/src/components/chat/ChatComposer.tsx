@@ -304,7 +304,7 @@ export interface ChatComposerHandle {
   ) => boolean;
   replyToResponse: (response: ResponseContextRecord) => boolean;
   openModelPicker: () => void;
-  stepReasoningEffort: (direction: 1 | -1) => void;
+  stepReasoningEffort: (direction: 1 | -1 | { readonly level: number }) => void; // [Atlas] A28
   toggleModelPicker: () => void;
   openControl: (command: KeybindingCommand) => void;
   isModelPickerOpen: () => boolean;

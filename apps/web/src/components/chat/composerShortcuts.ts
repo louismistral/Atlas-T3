@@ -1,3 +1,4 @@
+import { ATLAS_EFFORT_KEYBINDING_COMMANDS } from "@t3tools/contracts";
 import type { ComposerHandleRef } from "../../composerHandleContext";
 import type { BranchToolbarHandle } from "../BranchToolbar";
 import type { ChatComposerHandle } from "./ChatComposer";
@@ -24,6 +25,15 @@ export function composerShortcutCommands(
     "composer.decreaseEffort": ({ event }) => {
       if (!event.repeat) composerRef.current?.stepReasoningEffort(-1);
     },
+    // [Atlas] A28 : Ctrl+1 à 5 = effort du plus bas au plus haut
+    ...Object.fromEntries(
+      ATLAS_EFFORT_KEYBINDING_COMMANDS.map((command, index) => [
+        command,
+        ({ event }: { readonly event: KeyboardEvent }) => {
+          if (!event.repeat) composerRef.current?.stepReasoningEffort({ level: index + 1 });
+        },
+      ]),
+    ),
     "composer.host": openControl(composerRef, "composer.host"),
     "composer.effort": openControl(composerRef, "composer.effort"),
     "composer.mode": openControl(composerRef, "composer.mode"),

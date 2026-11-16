@@ -34,6 +34,15 @@ export const MODEL_PICKER_JUMP_KEYBINDING_COMMANDS = [
 export type ModelPickerJumpKeybindingCommand =
   (typeof MODEL_PICKER_JUMP_KEYBINDING_COMMANDS)[number];
 
+// [Atlas] A28 : un effort précis par raccourci, 1 = le plus bas, 5 = le plus haut (max)
+export const ATLAS_EFFORT_KEYBINDING_COMMANDS = [
+  "composer.effort.1",
+  "composer.effort.2",
+  "composer.effort.3",
+  "composer.effort.4",
+  "composer.effort.5",
+] as const;
+
 const THREAD_KEYBINDING_COMMANDS = [
   "thread.stop",
   "thread.steerQueuedMessage",
@@ -98,6 +107,8 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "composer.effort",
   "composer.increaseEffort",
   "composer.decreaseEffort",
+  // [Atlas] A28 : Ctrl+1 à 5 = effort du plus bas au plus haut
+  ...ATLAS_EFFORT_KEYBINDING_COMMANDS,
   "composer.mode",
   "composer.workspace",
   "composer.previousWorktree",

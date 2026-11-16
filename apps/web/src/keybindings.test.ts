@@ -374,7 +374,7 @@ describe("thread navigation helpers", () => {
         platform: "MacIntel",
         context: { isDesktop: true },
       }),
-      "thread.jump.1",
+      "composer.effort.1",
     );
     assert.isFalse(
       shouldShowThreadJumpHintsForModifiers(
@@ -420,7 +420,7 @@ describe("model picker navigation helpers", () => {
         platform: "MacIntel",
         context: { isDesktop: true, modelPickerOpen: false },
       }),
-      "thread.jump.3",
+      "composer.effort.3",
     );
   });
 });
@@ -707,7 +707,7 @@ describe("resolveShortcutCommand", () => {
         DEFAULT_RESOLVED_KEYBINDINGS,
         { platform: "Linux", context: { isDesktop: true } },
       ),
-      "thread.jump.1",
+      "composer.effort.1",
     );
     assert.strictEqual(
       resolveShortcutCommand(
@@ -943,6 +943,7 @@ describe("composer and pull request shortcuts", () => {
   });
 });
 
+// [Atlas] A28 : mod+1 à 5 règlent l'effort (les sauts de session gardent mod+6 à 9)
 describe("Usage shortcuts", () => {
   it.each(["Linux", "MacIntel"])(
     "preserves desktop numbered thread shortcuts on Usage on %s",
@@ -957,10 +958,10 @@ describe("Usage shortcuts", () => {
           platform,
           context: { usagePageOpen: true, isDesktop: true },
         }),
-        "thread.jump.2",
+        "composer.effort.2",
       );
       assert.isNotNull(
-        shortcutLabelForCommand(DEFAULT_RESOLVED_KEYBINDINGS, "thread.jump.2", {
+        shortcutLabelForCommand(DEFAULT_RESOLVED_KEYBINDINGS, "composer.effort.2", {
           platform,
           context: { usagePageOpen: true, isDesktop: true },
         }),

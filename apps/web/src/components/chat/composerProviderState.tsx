@@ -147,7 +147,7 @@ export function getComposerReasoningStep(input: {
   prompt: string;
   cursor: number;
   includePlanAgent?: boolean | undefined;
-  direction: 1 | -1;
+  direction: 1 | -1 | { readonly level: number }; // [Atlas] A28
 }): {
   prompt: string;
   cursor: number;

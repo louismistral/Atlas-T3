@@ -8,6 +8,7 @@ import {
   type ResolvedKeybindingRule,
   type ResolvedKeybindingsConfig,
   THREAD_JUMP_KEYBINDING_COMMANDS,
+  ATLAS_EFFORT_KEYBINDING_COMMANDS, // [Atlas] A28
 } from "@t3tools/contracts";
 
 export {
@@ -131,8 +132,14 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+s", command: "thread.settle", when: "!terminalFocus" },
   { key: "mod+shift+p", command: "thread.pin", when: "!terminalFocus" },
   { key: "mod+z", command: "thread.undo", when: "!terminalFocus && !editableFocus" },
-  ...THREAD_JUMP_KEYBINDING_COMMANDS.map((command, index) => ({
+  // [Atlas] A28 : mod+1 à 5 règlent l'effort ; les sauts de session gardent mod+6 à 9
+  ...ATLAS_EFFORT_KEYBINDING_COMMANDS.map((command, index) => ({
     key: `mod+${index + 1}`,
+    command,
+    when: "!modelPickerOpen && isDesktop",
+  })),
+  ...THREAD_JUMP_KEYBINDING_COMMANDS.slice(5).map((command, index) => ({
+    key: `mod+${index + 6}`,
     command,
     when: "!modelPickerOpen && isDesktop",
   })),

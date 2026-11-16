@@ -288,6 +288,7 @@ import { ProviderSubagentBar } from "./chat/ProviderSubagentBar";
 import { getTriggerDisplayModelName } from "./chat/providerIconUtils";
 import { resolveScrollToEndClearance } from "./composerFooterLayout";
 import { ChatHeader } from "./chat/ChatHeader";
+import { AtlasTopBarHeader } from "../atlas/panes/paneActions"; // [Atlas] A23
 import { useSideChat } from "./chat/useSideChat";
 import { useRemoteOpenState } from "~/remoteOpen";
 import { shouldShowOpenInPicker } from "./chat/OpenInPicker.logic";
@@ -3330,7 +3331,8 @@ export default function ChatView(props: ChatViewProps) {
         inert={rightPanelMaximized}
       >
         {embedded ? null : (
-          <header
+          // [Atlas] A23 : à plusieurs zones, l'en-tête monte dans la barre du haut commune
+          <AtlasTopBarHeader
             ref={threadPanelPopoverAnchorRef}
             data-chat-header
             className={cn(
@@ -3370,7 +3372,7 @@ export default function ChatView(props: ChatViewProps) {
                 : {})}
               {...(threadFindEnabled ? { onFindInThread: openThreadFindStable } : {})}
             />
-          </header>
+          </AtlasTopBarHeader>
         )}
 
         <div className="relative flex min-h-0 min-w-0 flex-1">

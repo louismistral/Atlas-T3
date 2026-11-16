@@ -71,11 +71,81 @@ export function setLeafThread(state: PanesState, leafId: string, thread: PaneThr
 }
 
 export function setRatio(state: PanesState, splitId: string, ratio: number): PanesState {
-  const clamped = Math.min(0.9, Math.max(0.1, ratio));
+  const clamped = clampRatio(ratio);
   return {
     ...state,
     root: mapPane(state.root, splitId, (pane) => ({ ...pane, ratio: clamped })),
   };
+}
+
+interface Separator {
+  readonly id: string;
+  readonly dir: "row" | "col";
+  /** Le long de son axe, en fraction de la mosaïque : la séparation, puis le début et la taille de sa division. */
+  readonly pos: number;
+  readonly start: number;
+  readonly size: number;
+  /** Les divisions qui la contiennent : elle bouge quand l'une d'elles bouge. */
+  readonly inside: ReadonlyArray<string>;
+}
+
+function separators(
+  pane: Pane,
+  box = { x: 0, y: 0, w: 1, h: 1 },
+  inside: ReadonlyArray<string> = [],
+): Separator[] {
+  if (pane.kind === "leaf") return [];
+  const row = pane.dir === "row";
+  const start = row ? box.x : box.y;
+  const size = row ? box.w : box.h;
+  const cut = size * pane.ratio;
+  const a = row ? { ...box, w: cut } : { ...box, h: cut };
+  const b = row
+    ? { ...box, x: box.x + cut, w: box.w - cut }
+    : { ...box, y: box.y + cut, h: box.h - cut };
+  const within = [...inside, pane.id];
+  return [
+    { id: pane.id, dir: pane.dir, pos: start + cut, start, size, inside },
+    ...separators(pane.a, a, within),
+    ...separators(pane.b, b, within),
+  ];
+}
+
+const clampRatio = (ratio: number) => Math.min(0.9, Math.max(0.1, ratio));
+const ALIGNED = 0.002;
+
+/**
+ * Tirer une séparation jusqu'à `pos` : celles qui sont alignées avec elle suivent, et l'ensemble
+ * s'accroche aux autres séparations de même sens à moins de `snap`. `alone` (Maj) : elle seule, libre.
+ */
+export function dragSeparator(
+  state: PanesState,
+  id: string,
+  pos: number,
+  opts: { readonly alone: boolean; readonly snap: number },
+): Array<{ readonly id: string; readonly ratio: number }> {
+  const all = separators(state.root);
+  const own = all.find((sep) => sep.id === id);
+  if (own === undefined) return [];
+  const same = all.filter((sep) => sep.dir === own.dir);
+  // shortcut: alignées suffit, même sans se toucher ; exiger qu'elles se touchent si ça gêne.
+  const group = opts.alone ? [own] : same.filter((sep) => Math.abs(sep.pos - own.pos) < ALIGNED);
+  const moving = new Set(group.map((sep) => sep.id));
+  const anchors = opts.alone
+    ? []
+    : same
+        .filter((sep) => !moving.has(sep.id) && !sep.inside.some((parent) => moving.has(parent)))
+        .filter((sep) => Math.abs(sep.pos - pos) < opts.snap)
+        .toSorted((x, y) => Math.abs(x.pos - pos) - Math.abs(y.pos - pos));
+  const target = anchors[0]?.pos ?? pos;
+  return group.map((sep) => ({ id: sep.id, ratio: clampRatio((target - sep.start) / sep.size) }));
+}
+
+export function setRatios(
+  state: PanesState,
+  ratios: ReadonlyArray<{ readonly id: string; readonly ratio: number }>,
+): PanesState {
+  return ratios.reduce((next, { id, ratio }) => setRatio(next, id, ratio), state);
 }
 
 /** Relit l'état gardé ; n'importe quel texte invalide redonne une seule zone. */

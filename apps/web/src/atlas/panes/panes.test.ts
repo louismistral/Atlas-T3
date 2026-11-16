@@ -2,7 +2,16 @@
 // [Atlas] A23 : zone des sessions divisée façon Blender.
 import * as NodeFS from "node:fs";
 import { expect, it } from "vite-plus/test";
-import { closePane, leaves, parsePanes, setLeafThread, setRatio, splitPane } from "./panes";
+import {
+  closePane,
+  dragSeparator,
+  leaves,
+  parsePanes,
+  setLeafThread,
+  setRatio,
+  setRatios,
+  splitPane,
+} from "./panes";
 
 const T = { environmentId: "e", threadId: "t" };
 
@@ -29,6 +38,25 @@ it("borne la taille d'une zone et relit un état abîmé comme une seule zone", 
   expect(parsePanes(JSON.stringify(state), null)).toEqual(state);
 });
 
+it("les séparations alignées bougent ensemble, Maj en bouge une seule, et elles s'accrochent", () => {
+  // Quatre zones : une séparation verticale sur toute la hauteur, une horizontale de chaque côté.
+  let state = splitPane(parsePanes("", T), "main", "row", { split: "v", leaf: "b" });
+  state = splitPane(state, "main", "col", { split: "left", leaf: "c" });
+  state = splitPane(state, "b", "col", { split: "right", leaf: "d" });
+  const opts = { alone: false, snap: 0.01 };
+  expect(dragSeparator(state, "left", 0.3, opts)).toEqual([
+    { id: "left", ratio: 0.3 },
+    { id: "right", ratio: 0.3 },
+  ]);
+  const alone = dragSeparator(state, "left", 0.3, { alone: true, snap: 0.01 });
+  expect(alone).toEqual([{ id: "left", ratio: 0.3 }]);
+  // Désalignée, elle bouge seule, puis se raccroche à l'autre en passant près d'elle.
+  state = setRatios(state, alone);
+  expect(dragSeparator(state, "right", 0.7, opts)).toEqual([{ id: "right", ratio: 0.7 }]);
+  expect(dragSeparator(state, "left", 0.495, opts)).toEqual([{ id: "left", ratio: 0.5 }]);
+  expect(dragSeparator(state, "v", 0.25, opts)).toEqual([{ id: "v", ratio: 0.25 }]);
+});
+
 it("la vue des sessions passe par les zones", () => {
   const src = NodeFS.readFileSync(
     new URL("../../components/ThreadRouteView.tsx", import.meta.url),
@@ -40,4 +68,9 @@ it("la vue des sessions passe par les zones", () => {
     "utf8",
   );
   expect(controls).toContain("<AtlasPaneButtons />");
+  const chat = NodeFS.readFileSync(
+    new URL("../../components/ChatView.tsx", import.meta.url),
+    "utf8",
+  );
+  expect(chat).toContain("<AtlasTopBarHeader");
 });

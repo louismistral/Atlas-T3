@@ -89,8 +89,9 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
       className="flex h-full shrink-0 items-center gap-1 [-webkit-app-region:no-drag]"
       data-panel-layout-controls
     >
-      {/* [Atlas] A23 : diviser la zone des sessions, à côté du bouton des détails */}
-      <AtlasPaneButtons />
+      {/* [Atlas] A23 : diviser la zone des sessions, à côté du bouton des détails (une seule fois : ce
+          bloc est affiché deux fois quand le panneau de droite est ouvert) */}
+      {showTerminalControl ? <AtlasPaneButtons /> : null}
       {showThreadPanelControl ? threadPanelControl : null}
       {showTerminalControl ? (
         <Tooltip>

@@ -206,6 +206,7 @@ export function ViewedImagesTimelineRow({
                 srcFragment={image.srcFragment}
                 workspaceRoot={workspaceRoot}
                 maxHeightRem={4}
+                style={{ height: "4rem", width: "auto", maxWidth: "none" }}
                 onImageExpand={onImageExpand}
               />
             </div>

@@ -34,7 +34,7 @@ const TEXT = Schema.String;
 
 const NO_PARENT_PANEL = { openToolDiff: () => {}, runShellCommand: () => {} };
 const EDITABLE = '[contenteditable="true"], textarea';
-const SNAP_PX = 8;
+const SNAP_PX = 15;
 let seq = 0;
 // Unique dans l'arbre suffit : l'heure plus un compteur.
 const newId = () => `${Date.now().toString(36)}-${(seq += 1).toString(36)}`;
@@ -135,8 +135,23 @@ export function AtlasPanes(props: { routeThread: ScopedThreadRef | null; childre
         />
       )}
       <TopBarContext value={single ? undefined : topBar}>
-        <div ref={mosaic} className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div ref={mosaic} className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           <PaneNode pane={state.root} ctx={ctx} />
+          {/* Un angle qu'on peut tirer : quatre coins tournés vers le croisement. */}
+          <svg
+            data-atlas-corner
+            aria-hidden
+            viewBox="0 0 28 28"
+            className="pointer-events-none absolute z-20 size-7 -translate-x-1/2 -translate-y-1/2 text-primary"
+            style={{ display: "none" }}
+          >
+            <path
+              d="M11 4V11H4M17 4V11H24M11 24V17H4M17 24V17H24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+          </svg>
         </div>
       </TopBarContext>
     </div>
@@ -156,6 +171,24 @@ function PaneNode({ pane, ctx }: { pane: Pane; ctx: Ctx }) {
       { x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height },
       { x: SNAP_PX / box.width, y: SNAP_PX / box.height },
     );
+  };
+  const markCorner = (handle: HTMLElement, cross: string | undefined) => {
+    const root = ctx.mosaic.current;
+    const mark = root?.querySelector<SVGSVGElement>("[data-atlas-corner]");
+    if (root === null || mark == null) return;
+    const other = cross === undefined ? null : root.querySelector(`[data-atlas-sep="${cross}"]`);
+    handle.toggleAttribute("data-corner", other !== null);
+    if (other === null) {
+      mark.style.display = "none";
+      return;
+    }
+    const [v, h] = row ? [handle, other] : [other, handle];
+    const box = root.getBoundingClientRect();
+    const vb = v.getBoundingClientRect();
+    const hb = h.getBoundingClientRect();
+    mark.style.left = `${vb.left + vb.width / 2 - box.left}px`;
+    mark.style.top = `${hb.top + hb.height / 2 - box.top}px`;
+    mark.style.display = "";
   };
   // Pendant le glissement, on bouge les séparations directement ; l'état n'est gardé qu'au relâché.
   const drag = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -181,11 +214,13 @@ function PaneNode({ pane, ctx }: { pane: Pane; ctx: Ctx }) {
         const first = root.querySelector<HTMLElement>(`[data-atlas-split="${id}"]`);
         if (first) first.style.flexBasis = `${ratio * 100}%`;
       }
+      markCorner(handle, corner);
     };
     const up = () => {
       handle.removeEventListener("pointermove", move);
       handle.removeEventListener("pointerup", up);
       handle.removeEventListener("pointercancel", up);
+      markCorner(handle, undefined);
       if (ratios.length > 0) ctx.save(setRatios(ctx.state, ratios));
     };
     handle.addEventListener("pointermove", move);
@@ -204,12 +239,17 @@ function PaneNode({ pane, ctx }: { pane: Pane; ctx: Ctx }) {
       {/* Zone de prise large (2 unités) autour d'un trait d'un pixel. */}
       <div
         role="separator"
+        data-atlas-sep={pane.id}
         aria-orientation={row ? "vertical" : "horizontal"}
         onPointerDown={drag}
         onPointerMove={(event) => {
-          if (event.buttons === 0) {
-            event.currentTarget.style.cursor = cornerAt(event) === undefined ? "" : "move";
-          }
+          if (event.buttons !== 0) return;
+          const cross = cornerAt(event);
+          event.currentTarget.style.cursor = cross === undefined ? "" : "move";
+          markCorner(event.currentTarget, cross);
+        }}
+        onPointerLeave={(event) => {
+          if (event.buttons === 0) markCorner(event.currentTarget, undefined);
         }}
         className={cn(
           "group/sep z-10 flex shrink-0 touch-none items-center justify-center select-none",
@@ -218,7 +258,7 @@ function PaneNode({ pane, ctx }: { pane: Pane; ctx: Ctx }) {
       >
         <div
           className={cn(
-            "bg-border/70 group-hover/sep:bg-primary/50",
+            "bg-border/70 group-hover/sep:bg-primary/50 group-data-corner/sep:bg-border/70!",
             row ? "h-full w-px" : "h-px w-full",
           )}
         />

@@ -152,6 +152,7 @@ import {
   SettingsSection,
   SETTINGS_PICKER_TRIGGER_CLASSNAME,
 } from "./settingsLayout";
+import { ScheduledTaskEffortPicker } from "../../atlas/scheduled-effort/ScheduledTaskEffortPicker"; // [Atlas] A30 : effort d'une tâche planifiée
 
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 const WEEKDAY_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
@@ -1767,7 +1768,8 @@ function ScheduledTaskEditorForm({
           </Field>
 
           <Field label="Model">
-            <div>
+            {/* [Atlas] A30 : modèle et effort côte à côte, comme dans les réglages du projet */}
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               <ProviderModelPicker
                 environmentId={environmentId}
                 disabled={saving || !connected}
@@ -1780,6 +1782,16 @@ function ScheduledTaskEditorForm({
                 triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
                 onInstanceModelChange={(instanceId, model) =>
                   setDraft((current) => ({ ...current, modelKey: `${instanceId}:${model}` }))
+                }
+              />
+              {/* [Atlas] A30 : l'effort, gardé dans la sélection de base que l'enregistrement reprend pour ce modèle */}
+              <ScheduledTaskEffortPicker
+                entry={instanceEntries.find((entry) => entry.instanceId === activeInstanceId)}
+                model={activeModel}
+                base={draft.baseModelSelection}
+                triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
+                onBaseChange={(next) =>
+                  setDraft((current) => ({ ...current, baseModelSelection: next }))
                 }
               />
             </div>

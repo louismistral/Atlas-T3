@@ -22,6 +22,7 @@ import {
 import { startWindowsForegroundFocusThread } from "./WindowsForegroundFocusThread.ts";
 // [Atlas] A22 : correcteur anglais + français
 import { applyAtlasSpellcheck } from "../atlas/spellcheck.ts";
+import { applyAtlasTaskbar } from "../atlas/taskbar.ts"; // [Atlas] A21 : épingler = épingler ATLAS T3
 
 function windowsForegroundFocusTarget(window: Electron.BrowserWindow) {
   return {
@@ -243,6 +244,7 @@ export const make = Effect.gen(function* () {
         try: () => {
           const window = new Electron.BrowserWindow(options);
           applyAtlasSpellcheck(window); // [Atlas] A22 : correcteur anglais + français
+          applyAtlasTaskbar(window); // [Atlas] A21 : épingler = épingler ATLAS T3, pas Electron
           if (behavior?.auxiliary === true) auxiliaryWindows.add(window);
           return window;
         },

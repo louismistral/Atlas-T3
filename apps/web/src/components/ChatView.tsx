@@ -385,6 +385,7 @@ import {
   makeThreadErrorSetter,
 } from "./ChatView.logic";
 import { AtlasCacheBar } from "../atlas/cache/AtlasCacheBar"; // [Atlas] A4
+import { atlasOfferResumeCompaction } from "../atlas/compact/manualCompact"; // [Atlas] A31
 
 const EMPTY_PROVIDERS: ServerProvider[] = [];
 const EMPTY_PROVIDER_MODELS: ServerProvider["models"] = [];
@@ -2524,6 +2525,7 @@ export default function ChatView(props: ChatViewProps) {
     !compactDisabled &&
     !hasHeldQueuedRuns &&
     multipleModelSelections === null &&
+    atlasOfferResumeCompaction && // [Atlas] A31 : pas de bouton Compact / Keep ni de compaction avant l'envoi
     shouldOfferResumeCompaction({
       provider: selectedProvider,
       usedTokens: activeContextWindow.usedTokens,

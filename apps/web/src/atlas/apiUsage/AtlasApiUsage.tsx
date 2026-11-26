@@ -12,6 +12,7 @@ import { readDesktopPrimaryBearerToken } from "../../environments/primary/deskto
 import { resolvePrimaryEnvironmentHttpUrl } from "../../environments/primary/target";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useNowMinute } from "../../hooks/useNowMinute";
+import { observeResize } from "../../lib/observeResize";
 import { cn } from "../../lib/utils";
 
 interface ApiUsage {
@@ -61,12 +62,35 @@ export function AtlasApiUsageToggle() {
   );
 }
 
+// Card width (w-44) plus its right-3 margin and a little air.
+const GUTTER_PX = 200;
+
 export function AtlasApiUsagePanel() {
   const [open] = useApiUsageOpen();
+  const [besideComposer, setBesideComposer] = useState(true);
+  const attach = (anchor: HTMLDivElement | null) => {
+    const overlay = anchor?.parentElement;
+    const stack = overlay?.querySelector('[data-chat-composer-stack="true"]');
+    if (!overlay || !stack) return;
+    // Beside the composer when the gutter fits the card, or below it on a new thread (composer centred).
+    return observeResize([overlay, stack], () => {
+      const area = overlay.getBoundingClientRect();
+      const composer = stack.getBoundingClientRect();
+      setBesideComposer(
+        area.right - composer.right >= GUTTER_PX || area.bottom - composer.bottom > 150,
+      );
+    });
+  };
   if (!open) return null;
   return (
-    // Sits in the gutter right of the composer; the container query hides it when no gutter is left.
-    <div className="@container pointer-events-none absolute right-3 bottom-[calc(env(safe-area-inset-bottom)+1.25rem)] left-[calc(50%+var(--chat-content-max-width)/2+0.75rem)]">
+    // Without room beside the composer, the card sits just above it, still on the right.
+    <div
+      ref={attach}
+      className={cn(
+        "pointer-events-none absolute right-3",
+        besideComposer ? "bottom-[calc(env(safe-area-inset-bottom)+1.25rem)]" : "bottom-full mb-2",
+      )}
+    >
       <ApiUsageCard />
     </div>
   );
@@ -92,20 +116,21 @@ function ApiUsageCard() {
   return (
     <div
       data-atlas="A32"
-      className="dropdown-glass pointer-events-auto ml-auto flex w-44 flex-col gap-1 rounded-2xl p-1.5 @max-[11rem]:hidden"
+      className="dropdown-glass pointer-events-auto flex w-44 flex-col gap-1 rounded-2xl p-1.5"
     >
       {entries.length === 0 ? (
         <p className="px-1.5 text-2xs text-muted-foreground">No API calls recorded yet</p>
       ) : (
         entries.map((entry) => {
-          const used = Math.round(((entry.limit - entry.remaining) / entry.limit) * 100);
+          const spent = entry.limit - entry.remaining;
+          const used = Math.round((spent / entry.limit) * 100);
           return (
             <Tooltip key={entry.label}>
               <TooltipTrigger
                 render={
                   <div
                     tabIndex={0}
-                    aria-label={`${entry.label}: ${entry.remaining} of ${entry.limit} calls left today`}
+                    aria-label={`${entry.label}: ${spent} of ${entry.limit} calls used today`}
                     className="flex cursor-default flex-col gap-1 rounded-lg px-1.5 py-1 text-2xs tabular-nums outline-none hover:bg-black/[0.035] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset dark:hover:bg-white/[0.08]"
                   />
                 }
@@ -122,7 +147,7 @@ function ApiUsageCard() {
                           : "text-foreground/80",
                     )}
                   >
-                    {compact.format(entry.remaining)} / {compact.format(entry.limit)}
+                    {compact.format(spent)} / {compact.format(entry.limit)}
                   </span>
                 </span>
                 <span className="relative h-[3px] rounded-full bg-muted-foreground/30 dark:bg-muted-foreground/20">
@@ -140,8 +165,8 @@ function ApiUsageCard() {
               <TooltipPopup side="left" sideOffset={12}>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-foreground">
-                    {entry.label}: {entry.remaining.toLocaleString("en-US")} of{" "}
-                    {entry.limit.toLocaleString("en-US")} calls left today
+                    {entry.label}: {spent.toLocaleString("en-US")} of{" "}
+                    {entry.limit.toLocaleString("en-US")} calls used today
                   </span>
                   {entry.perSecond ? (
                     <span className="text-muted-foreground">

@@ -10,7 +10,6 @@ import { memo, type ReactNode } from "react";
 import { cn } from "~/lib/utils";
 
 import { AtlasPaneButtons } from "../../atlas/panes/paneActions"; // [Atlas] A23
-import { AtlasApiUsageToggle } from "../../atlas/apiUsage/AtlasApiUsage"; // [Atlas] A32
 
 import type { ThreadPanelPresentation } from "../../rightPanelLayout";
 import { PopoverCreateHandle, PopoverTrigger } from "../ui/popover";
@@ -94,8 +93,6 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
           bloc est affiché deux fois quand le panneau de droite est ouvert) */}
       {showTerminalControl ? <AtlasPaneButtons /> : null}
       {showThreadPanelControl ? threadPanelControl : null}
-      {/* [Atlas] A32 : afficher ou cacher les quotas d'API, à côté du bouton des détails */}
-      {showTerminalControl ? <AtlasApiUsageToggle /> : null}
       {showTerminalControl ? (
         <Tooltip>
           <TooltipTrigger render={<span className="flex shrink-0" />}>

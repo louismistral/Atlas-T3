@@ -29,7 +29,8 @@ async function fetchReport(): Promise<Report | null> {
     const token = await readDesktopPrimaryBearerToken();
     const response = await fetch(resolvePrimaryEnvironmentHttpUrl("/api/atlas/skills-sync"), {
       headers: token ? { authorization: `Bearer ${token}` } : {},
-      credentials: "include",
+      // Desktop sends its token without cookies, like environments/primary/httpLayer.ts: its CORS refuses credentials.
+      credentials: token ? "omit" : "include",
     });
     return response.ok ? ((await response.json()) as Report) : null;
   } catch {

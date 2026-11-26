@@ -30,10 +30,9 @@ it("écarte un fichier incomplet", () => {
   expect(parseApiUsage({ ...etsy, perSecond: undefined }, now)?.perSecond).toBeNull();
 });
 
-it("la route, le bouton et le panneau sont branchés", () => {
+it("la route et le panneau sont branchés", () => {
   const read = (p: string) => NodeFS.readFileSync(new URL(p, import.meta.url), "utf8");
   expect(read("../../server.ts")).toContain("AtlasApiUsageRoute.layer");
   const web = "../../../../web/src/components/";
-  expect(read(`${web}ChatView.tsx`)).toContain("<AtlasApiUsagePanel />");
-  expect(read(`${web}chat/PanelLayoutControls.tsx`)).toContain("<AtlasApiUsageToggle />");
+  expect(read(`${web}ChatView.tsx`)).toContain("<AtlasApiUsagePanel open={threadPanelOpen} />");
 });

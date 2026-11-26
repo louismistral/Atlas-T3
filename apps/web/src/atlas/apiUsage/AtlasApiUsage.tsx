@@ -1,16 +1,12 @@
 // [Atlas] A32 : quotas d'API externes (Etsy Redline, Etsy File Drawer) dans un petit panneau en bas à
-// droite, à côté de la saisie, affiché ou caché par un bouton de la barre du haut. Le serveur lit les
+// droite, à côté de la saisie, affiché et caché avec le panneau des détails de session. Le serveur lit les
 // relevés que les scripts écrivent dans ~/.claude/atlas/api-usage/.
 import { formatDuration } from "@t3tools/shared/usageLimits";
-import { GaugeIcon } from "lucide-react";
-import * as Schema from "effect/Schema";
 import { useEffect, useState } from "react";
 
-import { Toggle } from "../../components/ui/toggle";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../components/ui/tooltip";
 import { readDesktopPrimaryBearerToken } from "../../environments/primary/desktopAuth";
 import { resolvePrimaryEnvironmentHttpUrl } from "../../environments/primary/target";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { observeResize } from "../../lib/observeResize";
 import { cn } from "../../lib/utils";
@@ -24,15 +20,13 @@ interface ApiUsage {
   readonly stale: boolean;
 }
 
-const useApiUsageOpen = () =>
-  useLocalStorage<boolean, boolean>("atlas:api-usage-open", true, Schema.Boolean);
-
 async function fetchApiUsage(): Promise<ReadonlyArray<ApiUsage> | null> {
   try {
     const token = await readDesktopPrimaryBearerToken();
     const response = await fetch(resolvePrimaryEnvironmentHttpUrl("/api/atlas/api-usage"), {
       headers: token ? { authorization: `Bearer ${token}` } : {},
-      credentials: "include",
+      // Desktop sends its token without cookies, like environments/primary/httpLayer.ts: its CORS refuses credentials.
+      credentials: token ? "omit" : "include",
     });
     return response.ok ? ((await response.json()) as ReadonlyArray<ApiUsage>) : null;
   } catch {
@@ -40,33 +34,10 @@ async function fetchApiUsage(): Promise<ReadonlyArray<ApiUsage> | null> {
   }
 }
 
-export function AtlasApiUsageToggle() {
-  const [open, setOpen] = useApiUsageOpen();
-  return (
-    <Tooltip>
-      <TooltipTrigger render={<span className="flex shrink-0" />}>
-        <Toggle
-          className="shrink-0 [-webkit-app-region:no-drag]"
-          pressed={open}
-          onPressedChange={setOpen}
-          aria-label="Toggle API quotas"
-          data-atlas="A32"
-          variant="ghost"
-          size="sm"
-        >
-          <GaugeIcon className="size-4" />
-        </Toggle>
-      </TooltipTrigger>
-      <TooltipPopup side="bottom">Toggle API quotas</TooltipPopup>
-    </Tooltip>
-  );
-}
-
 // Card width (w-44) plus its right-3 margin and a little air.
 const GUTTER_PX = 200;
 
-export function AtlasApiUsagePanel() {
-  const [open] = useApiUsageOpen();
+export function AtlasApiUsagePanel({ open }: { readonly open: boolean }) {
   const [besideComposer, setBesideComposer] = useState(true);
   const attach = (anchor: HTMLDivElement | null) => {
     const overlay = anchor?.parentElement;
@@ -81,14 +52,13 @@ export function AtlasApiUsagePanel() {
       );
     });
   };
-  if (!open) return null;
   return (
-    // Without room beside the composer, the card sits just above it, still on the right.
+    // Stays mounted while hidden so it reopens with its numbers; never over the composer.
     <div
       ref={attach}
       className={cn(
-        "pointer-events-none absolute right-3",
-        besideComposer ? "bottom-[calc(env(safe-area-inset-bottom)+1.25rem)]" : "bottom-full mb-2",
+        "pointer-events-none absolute right-3 bottom-[calc(env(safe-area-inset-bottom)+1.25rem)]",
+        (!open || !besideComposer) && "invisible",
       )}
     >
       <ApiUsageCard />

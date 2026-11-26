@@ -386,6 +386,7 @@ import {
 } from "./ChatView.logic";
 import { AtlasCacheBar } from "../atlas/cache/AtlasCacheBar"; // [Atlas] A4
 import { atlasOfferResumeCompaction } from "../atlas/compact/manualCompact"; // [Atlas] A31
+import { AtlasApiUsagePanel } from "../atlas/apiUsage/AtlasApiUsage"; // [Atlas] A32
 
 const EMPTY_PROVIDERS: ServerProvider[] = [];
 const EMPTY_PROVIDER_MODELS: ServerProvider["models"] = [];
@@ -3545,6 +3546,8 @@ export default function ChatView(props: ChatViewProps) {
                   : "pointer-events-none absolute inset-x-0 bottom-0 z-20 pt-1.5 sm:pt-2"
               }
             >
+              {/* [Atlas] A32 : quotas d'API en bas à droite, à côté de la saisie */}
+              <AtlasApiUsagePanel />
               <div ref={draftHeroTransitionGroupRef} className="chat-composer-lane w-full">
                 <div
                   data-chat-composer-stack="true"

@@ -211,6 +211,7 @@ import * as ThreadSettlementService from "./orchestration-v2/ThreadSettlementSer
 import * as IdleCompactionService from "./orchestration-v2/IdleCompactionService.ts";
 import * as AtlasSessionSync from "./atlas/sessionSync/sessionSync.ts"; // [Atlas] A8
 import * as AtlasSkillsSyncRoute from "./atlas/skillsSync/route.ts"; // [Atlas] A25
+import * as AtlasApiUsageRoute from "./atlas/apiUsage/route.ts"; // [Atlas] A32
 import * as ThreadPullRequestService from "./orchestration-v2/ThreadPullRequestService.ts";
 import * as RunFinalizationService from "./orchestration-v2/RunFinalizationService.ts";
 import * as ProjectionMaintenance from "./orchestration-v2/ProjectionMaintenance.ts";
@@ -816,6 +817,7 @@ const layerMakeRoutes = Layer.mergeAll(
     ),
     ServerHttp.layerOtlpTracesProxyRoute,
     AtlasSkillsSyncRoute.layer, // [Atlas] A25 : état des skills claude.ai
+    AtlasApiUsageRoute.layer, // [Atlas] A32 : quotas d'API externes (Etsy)
     ServerHttp.layerAssetRoute,
     ServerHttp.layerAttachmentUploadRoute,
     GuestHttp.layer,

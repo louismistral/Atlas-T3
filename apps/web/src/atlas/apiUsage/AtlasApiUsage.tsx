@@ -34,8 +34,8 @@ async function fetchApiUsage(): Promise<ReadonlyArray<ApiUsage> | null> {
   }
 }
 
-// Card width (w-44) plus its right-3 margin and a little air.
-const GUTTER_PX = 200;
+// Card width (w-70, the thread details card's 280px) plus its right-3 margin and a little air.
+const GUTTER_PX = 300;
 
 export function AtlasApiUsagePanel({ open }: { readonly open: boolean }) {
   const [besideComposer, setBesideComposer] = useState(true);
@@ -86,7 +86,7 @@ function ApiUsageCard() {
   return (
     <div
       data-atlas="A32"
-      className="dropdown-glass pointer-events-auto flex w-44 flex-col gap-1 rounded-2xl p-1.5"
+      className="dropdown-glass pointer-events-auto flex w-70 flex-col gap-1 rounded-2xl p-1.5"
     >
       {entries.length === 0 ? (
         <p className="px-1.5 text-2xs text-muted-foreground">No API calls recorded yet</p>
